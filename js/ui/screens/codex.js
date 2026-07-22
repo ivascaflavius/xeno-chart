@@ -1,8 +1,12 @@
 import { el } from '../components/dom.js';
 import { starPortrait, planetPortrait, lifePortrait, lockedPortrait } from '../../render/portraits.js';
-import { STAR_CLASSES, PLANET_CLASSES, BIOCHEMISTRY_TYPES, LIFE_STAGES } from '../../data/constants.js';
+import {
+  STAR_CLASSES, PLANET_CLASSES, BIOCHEMISTRY_TYPES, LIFE_STAGES, ACHIEVEMENTS,
+} from '../../data/constants.js';
+import { attachHoverTooltip } from '../components/tooltip.js';
+import { iconButton } from '../components/iconButton.js';
 
-const TABS = ['stellar', 'planetary', 'biological'];
+const TABS = ['stellar', 'planetary', 'biological', 'achievements'];
 
 function buildItems(track) {
   if (track === 'stellar') {
@@ -37,18 +41,44 @@ function buildItems(track) {
 
 export function render(container, gs) {
   let active = 'stellar';
-  const gridWrap = el('div', { className: 'codex-grid' });
+  const contentWrap = el('div', {});
   const tabRow = el('div', { className: 'tabs' });
 
   function renderGrid() {
-    gridWrap.innerHTML = '';
+    contentWrap.className = 'codex-grid';
+    contentWrap.innerHTML = '';
     const discovered = gs.global.codex[active];
     for (const item of buildItems(active)) {
       const isDiscovered = !!discovered[item.key];
       const entry = el('div', { className: 'codex-entry' });
       entry.innerHTML = isDiscovered ? item.portrait() : lockedPortrait();
-      entry.title = isDiscovered ? item.label : 'Undiscovered';
-      gridWrap.appendChild(entry);
+      attachHoverTooltip(entry, () => (isDiscovered
+        ? `<strong>${item.label}</strong>`
+        : '<em>Undiscovered</em>'));
+      contentWrap.appendChild(entry);
+    }
+  }
+
+  function renderAchievements() {
+    contentWrap.className = 'stack';
+    contentWrap.innerHTML = '';
+    for (const achievement of ACHIEVEMENTS) {
+      const unlocked = !!gs.global.achievements[achievement.key];
+      contentWrap.appendChild(el('div', { className: 'panel row' }, [
+        el('span', { className: `status-dot status-${unlocked ? 'green' : 'red'}` }),
+        el('div', { className: 'stack' }, [
+          el('span', { text: unlocked ? achievement.label : '???' }),
+          el('span', { className: 'subtitle', text: unlocked ? achievement.description : 'Not yet unlocked' }),
+        ]),
+      ]));
+    }
+  }
+
+  function renderContent() {
+    if (active === 'achievements') {
+      renderAchievements();
+    } else {
+      renderGrid();
     }
   }
 
@@ -61,20 +91,20 @@ export function render(container, gs) {
         onClick: () => {
           active = tab;
           renderTabs();
-          renderGrid();
+          renderContent();
         },
       }));
     }
   }
 
   renderTabs();
-  renderGrid();
+  renderContent();
 
   container.appendChild(el('div', { className: 'screen' }, [
     el('p', { className: 'title', text: 'Codex' }),
     tabRow,
-    gridWrap,
+    contentWrap,
     el('div', { className: 'spacer' }),
-    el('button', { className: 'btn', text: 'Back', onClick: () => gs.back() }),
+    iconButton({ iconName: 'back', label: 'Back', onClick: () => gs.back() }),
   ]));
 }

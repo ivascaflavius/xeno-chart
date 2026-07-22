@@ -11,6 +11,7 @@ export function createEmptySave() {
     galaxyName: '',
     difficulty: 'expedition', // 'relaxed' | 'expedition'
     shipName: 'Unnamed Vessel',
+    hullColor: 'default',
     createdAt: 0,
     lastPlayedAt: 0,
     cycle: 0,
@@ -50,6 +51,10 @@ export function createEmptyGlobal() {
       planetary: {},
       biological: {},
     },
+    achievements: {},
+    commanderName: '',
+    audio: { enabled: true, volume: 0.5 },
+    haptics: { enabled: true },
   };
 }
 

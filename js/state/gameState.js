@@ -8,6 +8,9 @@ import {
   STARTING_BUFFERS,
   LONG_RANGE_SCAN_CHARGE_COST,
   CLOSE_RANGE_SCAN_CHARGE_COST,
+  STAR_CLASSES,
+  PLANET_CLASSES,
+  ACHIEVEMENTS,
 } from '../data/constants.js';
 import {
   trySpend, addAmount, getAmount, capFor, updateLifeSupport,
@@ -15,13 +18,22 @@ import {
 import { runModules } from '../systems/modules.js';
 import {
   computeJumpCost,
+  computeWormholeJumpCost,
   canAffordJump,
   performJump,
   updateStranded,
   sendDistressBeacon as travelSendDistressBeacon,
   effectiveSensorRange,
 } from '../systems/travel.js';
+import { closeScanChargeMultiplier } from '../systems/hazards.js';
 import * as saveManager from '../save/saveManager.js';
+import { enqueueCelebration } from '../ui/components/celebration.js';
+import {
+  playStinger, playWarning, configure as configureAudio, startAmbient,
+} from '../audio/audioManager.js';
+import {
+  vibrateForTier, vibrateWarning, configure as configureHaptics,
+} from '../audio/hapticsManager.js';
 
 import * as mainMenu from '../ui/screens/mainMenu.js';
 import * as newExpedition from '../ui/screens/newExpedition.js';
@@ -35,6 +47,8 @@ import * as codex from '../ui/screens/codex.js';
 import * as howToFly from '../ui/screens/howToFly.js';
 import * as pauseMenu from '../ui/screens/pauseMenu.js';
 import * as gameOver from '../ui/screens/gameOver.js';
+import * as settings from '../ui/screens/settings.js';
+import * as credits from '../ui/screens/credits.js';
 
 const SCREENS = {
   MAIN_MENU: mainMenu,
@@ -49,11 +63,14 @@ const SCREENS = {
   HOW_TO_FLY: howToFly,
   PAUSED: pauseMenu,
   GAME_OVER: gameOver,
+  SETTINGS: settings,
+  CREDITS: credits,
 };
 
 /** Backfills fields added to the save shape after a save was written, so older saves don't crash on load. */
 function normalizeSave(save) {
   if (!save.scanHistory) save.scanHistory = [];
+  if (!save.hullColor) save.hullColor = 'default';
   return save;
 }
 
@@ -63,10 +80,29 @@ class GameState {
     this.screen = 'MAIN_MENU';
     this.history = [];
     this.save = null;
+    this.currentSlot = 0;
     this.baseSeedInt = null;
     this.global = saveManager.loadGlobal();
     this.selectedSystemId = null;
     this.selectedPlanetId = null;
+    this.viaWormhole = false;
+    this.flashMessage = null;
+    this.presetSlot = null;
+    configureAudio(this.global.audio);
+    configureHaptics(this.global.haptics);
+  }
+
+  /** Call after any change to global audio/haptics settings (from the Settings screen). */
+  applyGlobalSettings() {
+    configureAudio(this.global.audio);
+    configureHaptics(this.global.haptics);
+  }
+
+  /** Read-and-clear so a flash message is shown exactly once, on the next render. */
+  takeFlashMessage() {
+    const msg = this.flashMessage;
+    this.flashMessage = null;
+    return msg;
   }
 
   render() {
@@ -77,10 +113,9 @@ class GameState {
   /**
    * All screen transitions flow through here so nothing reaches into another
    * screen directly. Pushes onto a small history stack so screens reachable
-   * from multiple parents (codex, how-to-fly, pause) can back() out to
-   * wherever they were actually opened from, rather than a single
-   * "previous screen" pointer that nested navigation (pause -> how to fly ->
-   * back -> resume) would clobber.
+   * from multiple parents (codex, how-to-fly, pause, settings) can back() out
+   * to wherever they were actually opened from, rather than a single
+   * "previous screen" pointer that nested navigation would clobber.
    */
   show(screenName, opts = {}) {
     if (screenName === 'MAIN_MENU' || screenName === 'GAME_OVER') {
@@ -91,6 +126,7 @@ class GameState {
     }
     this.screen = screenName;
     Object.assign(this, opts);
+    if (screenName === 'STARMAP') startAmbient();
     this.render();
   }
 
@@ -106,22 +142,24 @@ class GameState {
   }
 
   persistSave() {
-    if (this.save) saveManager.writeSave(this.save);
+    if (this.save) saveManager.writeSave(this.currentSlot, this.save);
   }
 
   persistGlobal() {
     saveManager.writeGlobal(this.global);
   }
 
-  hasSave() {
-    return !!saveManager.loadSave();
+  hasAnySave() {
+    return saveManager.loadAllSaves().some((s) => s !== null);
   }
 
-  peekSave() {
-    return saveManager.loadSave();
+  peekSave(slot) {
+    return saveManager.loadSave(slot);
   }
 
-  startNewExpedition(seedInput, difficulty) {
+  startNewExpedition({
+    seedInput, difficulty, shipName, hullColor, slot,
+  }) {
     const seed = (seedInput && seedInput.trim()) || String(Math.floor(Math.random() * 1e9));
     const baseSeedInt = seedToInt(seed);
     const startSystemId = getStartSystemId(baseSeedInt);
@@ -131,6 +169,8 @@ class GameState {
     save.seed = seed;
     save.galaxyName = galaxyName;
     save.difficulty = difficulty;
+    save.shipName = (shipName && shipName.trim()) || 'Unnamed Vessel';
+    save.hullColor = hullColor || 'default';
     save.createdAt = Date.now();
     save.position.systemId = startSystemId;
     save.resources = { ...STARTING_RESOURCES };
@@ -139,49 +179,91 @@ class GameState {
     save.stats.systemsVisited = [startSystemId];
 
     this.save = save;
+    this.currentSlot = slot;
     this.baseSeedInt = baseSeedInt;
     this.persistSave();
     this.show('STARMAP');
   }
 
-  loadExpedition() {
-    const save = saveManager.loadSave();
+  loadExpedition(slot) {
+    const save = saveManager.loadSave(slot);
     if (!save) return false;
     this.save = normalizeSave(save);
+    this.currentSlot = slot;
     this.baseSeedInt = seedToInt(save.seed);
     this.show('STARMAP');
     return true;
   }
 
-  importSave(save) {
+  importSave(save, slot) {
     this.save = normalizeSave(save);
+    this.currentSlot = slot;
     this.baseSeedInt = seedToInt(save.seed);
-    saveManager.writeSave(this.save);
+    saveManager.writeSave(slot, this.save);
   }
 
-  deleteSave() {
-    saveManager.deleteSave();
+  deleteSave(slot) {
+    saveManager.deleteSave(slot);
   }
 
   currentSystem() {
     return getSystem(this.baseSeedInt, this.save.position.systemId);
   }
 
+  /** Unlocks a global achievement (idempotent) and queues its celebration + stinger + haptic. */
+  unlockAchievement(key) {
+    if (this.global.achievements[key]) return false;
+    this.global.achievements[key] = true;
+    this.persistGlobal();
+    const def = ACHIEVEMENTS.find((a) => a.key === key);
+    const tier = def?.tier || 'notable';
+    enqueueCelebration(tier, { title: def?.label || key, body: def?.description || '' });
+    playStinger(tier);
+    vibrateForTier(tier);
+    return true;
+  }
+
+  /** Records a first-time codex discovery (idempotent) and queues its celebration + stinger + haptic. */
+  recordCodex(track, key, tier, label) {
+    if (this.global.codex[track][key]) return;
+    this.global.codex[track][key] = true;
+    this.persistGlobal();
+    enqueueCelebration(tier, { title: label, body: `New ${track} discovery` });
+    playStinger(tier);
+    vibrateForTier(tier);
+  }
+
+  checkMappingAchievement() {
+    if (Object.keys(this.save.discoveries).length >= 10) {
+      this.unlockAchievement('ten-systems-mapped');
+    }
+  }
+
   /** Runs module processing + life-support check for one elapsed cycle. Returns true if this triggered game over. */
   advanceCycle() {
+    const wasStranded = this.save.stranded;
+    const wasCritical = this.save.lifeSupportCountdown !== null;
     this.save.cycle += 1;
     runModules(this.save, 1);
     updateStranded(this.save);
     updateLifeSupport(this.save);
+    if (wasStranded && !this.save.stranded) {
+      this.unlockAchievement('survive-stranding');
+    }
+    if (!wasCritical && this.save.lifeSupportCountdown !== null) {
+      playWarning();
+      vibrateWarning();
+    }
     return this.save.gameOver;
   }
 
   longRangeScan() {
+    const currentSystem = this.currentSystem();
     if (!trySpend(this.save, 'charge', LONG_RANGE_SCAN_CHARGE_COST)) {
       return { ok: false, reason: 'insufficient-charge' };
     }
-    const currentPos = this.currentSystem().pos;
-    const range = effectiveSensorRange(this.save);
+    const currentPos = currentSystem.pos;
+    const range = effectiveSensorRange(this.save, currentSystem.hazard);
     const nearby = getSystemsInRadius(this.baseSeedInt, currentPos, range);
     for (const stub of nearby) {
       const existing = this.save.discoveries[stub.id];
@@ -197,6 +279,7 @@ class GameState {
       this.save.scanHistory.push({ x: currentPos.x, y: currentPos.y, range });
     }
 
+    this.checkMappingAchievement();
     const isGameOver = this.advanceCycle();
     this.persistSave();
     if (isGameOver) {
@@ -207,34 +290,41 @@ class GameState {
     return { ok: true };
   }
 
-  recordCodex(track, key) {
-    if (!this.global.codex[track][key]) {
-      this.global.codex[track][key] = true;
-      this.persistGlobal();
-    }
-  }
-
   closeRangeScan(systemId) {
-    if (!trySpend(this.save, 'charge', CLOSE_RANGE_SCAN_CHARGE_COST)) {
+    const sys = getSystem(this.baseSeedInt, systemId);
+    const cost = CLOSE_RANGE_SCAN_CHARGE_COST * closeScanChargeMultiplier(sys.hazard);
+    if (!trySpend(this.save, 'charge', cost)) {
       return { ok: false, reason: 'insufficient-charge' };
     }
-    const sys = getSystem(this.baseSeedInt, systemId);
     const prior = this.save.discoveries[systemId];
+    const alreadyClose = prior?.tier === 'close';
     this.save.discoveries[systemId] = { tier: 'close', lifeCounted: prior?.lifeCounted || false };
 
-    this.recordCodex('stellar', sys.star.class);
+    const starDef = STAR_CLASSES.find((c) => c.key === sys.star.class);
+    this.recordCodex('stellar', sys.star.class, starDef.weight <= 2 ? 'notable' : 'minor', sys.star.label);
+    if (sys.star.class === 'NS') this.unlockAchievement('first-pulsar');
+
     for (const planet of sys.planets) {
-      this.recordCodex('planetary', planet.class);
+      const planetDef = PLANET_CLASSES.find((c) => c.key === planet.class);
+      this.recordCodex('planetary', planet.class, planetDef.weight <= 2 ? 'notable' : 'minor', planet.label);
       if (planet.life) {
-        this.recordCodex('biological', `${planet.life.biochemistry}:${planet.life.stage}`);
+        this.recordCodex('biological', `${planet.life.biochemistry}:${planet.life.stage}`, 'rare', planet.life.speciesName);
+        this.unlockAchievement('first-life');
+        if (planet.life.biochemistry === 'silicon') this.unlockAchievement('first-silicon-life');
       }
     }
+
+    if (sys.wormholeTo && !alreadyClose) {
+      this.unlockAchievement('first-wormhole');
+    }
+
     const lifeCount = sys.planets.filter((p) => p.life).length;
     if (!this.save.discoveries[systemId].lifeCounted && lifeCount > 0) {
       this.save.stats.lifeFound += lifeCount;
       this.save.discoveries[systemId].lifeCounted = true;
     }
 
+    this.checkMappingAchievement();
     const isGameOver = this.advanceCycle();
     this.persistSave();
     if (isGameOver) {
@@ -259,6 +349,7 @@ class GameState {
     const [systemId] = planetId.split(':p');
     if (systemId !== this.save.position.systemId) return { ok: false };
 
+    const cycleBefore = this.save.cycle;
     let totalHarvested = 0;
     let isGameOver = false;
 
@@ -290,6 +381,14 @@ class GameState {
       if (isGameOver) break;
     }
 
+    const cyclesElapsed = this.save.cycle - cycleBefore;
+    if (totalHarvested > 0) {
+      this.flashMessage = cyclesElapsed > 1
+        ? `Harvested ${Math.round(totalHarvested)} ${mineralKey}. That took ${cyclesElapsed} cycles to fit it all in — modules kept consuming from the buffer as it filled, so the stored amount may be lower than what you took.`
+        : `Harvested ${Math.round(totalHarvested)} ${mineralKey}.`;
+      this.unlockAchievement('first-harvest');
+    }
+
     this.persistSave();
     if (isGameOver) {
       this.show('GAME_OVER');
@@ -303,31 +402,42 @@ class GameState {
     const currentPos = this.currentSystem().pos;
     const target = getSystem(this.baseSeedInt, targetSystemId);
     const distance = distanceLy(currentPos, target.pos);
-    const cost = computeJumpCost(this.save, distance);
-    return { distance, cost, canAfford: canAffordJump(this.save, cost) };
+    const cost = this.viaWormhole
+      ? computeWormholeJumpCost(this.save, target.hazard)
+      : computeJumpCost(this.save, distance, target.hazard);
+    return {
+      distance, cost, canAfford: canAffordJump(this.save, cost), viaWormhole: this.viaWormhole,
+    };
   }
 
   commitJump(targetSystemId) {
     const currentPos = this.currentSystem().pos;
     const target = getSystem(this.baseSeedInt, targetSystemId);
     const distance = distanceLy(currentPos, target.pos);
-    const result = performJump(this.save, distance, targetSystemId);
+    const cost = this.viaWormhole
+      ? computeWormholeJumpCost(this.save, target.hazard)
+      : computeJumpCost(this.save, distance, target.hazard);
+    const result = performJump(this.save, cost, distance, targetSystemId);
     if (!result.ok) return result;
     this.selectedSystemId = null;
+    this.viaWormhole = false;
     this.persistSave();
     this.show(this.save.gameOver ? 'GAME_OVER' : 'STARMAP');
     return result;
   }
 
   sendDistressBeacon() {
+    const wasStranded = this.save.stranded;
     const result = travelSendDistressBeacon(this.save);
     if (result.ok) {
+      if (wasStranded && !this.save.stranded) {
+        this.unlockAchievement('survive-stranding');
+      }
       this.persistSave();
       this.refresh();
     }
     return result;
   }
-
 }
 
 let instance = null;

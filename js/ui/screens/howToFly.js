@@ -1,4 +1,5 @@
 import { el } from '../components/dom.js';
+import { iconButton } from '../components/iconButton.js';
 
 const SECTIONS = [
   {
@@ -26,6 +27,13 @@ const SECTIONS = [
       + 'into fuel, the electrolysis unit turns ice into oxygen and hydrogen, the hydroponics bay turns '
       + 'water and oxygen into food, and the reactor turns fuel into charge.',
   },
+  {
+    heading: 'Wormholes & Hazards',
+    body: 'Some systems hide a wormhole — a cheap, flat-cost shortcut to a distant system, revealed once '
+      + "you close-range scan it. Others carry a hazard flagged as soon as you long-range scan them: solar "
+      + 'flares reduce your scan range, radiation zones raise close-scan costs, and asteroid fields raise '
+      + 'the fuel cost to jump in — plan around them, they never ambush you.',
+  },
 ];
 
 export function render(container, gs) {
@@ -36,6 +44,6 @@ export function render(container, gs) {
       el('p', { className: 'subtitle', text: s.body }),
     ])),
     el('div', { className: 'spacer' }),
-    el('button', { className: 'btn', text: 'Back', onClick: () => gs.back() }),
+    iconButton({ iconName: 'back', label: 'Back', onClick: () => gs.back() }),
   ]));
 }

@@ -116,5 +116,48 @@ export const LIFE_STAGES = [
 
 export const BIOSIGNATURE_BASE_CHANCE = 0.12;
 
-export const SAVE_STORAGE_KEY = 'xeno-chart:save:slot0';
+export const SAVE_SLOT_COUNT = 3;
+export const SAVE_STORAGE_KEY_PREFIX = 'xeno-chart:save:slot';
 export const GLOBAL_STORAGE_KEY = 'xeno-chart:global';
+
+// --- Wormholes (§3, §2, Phase 2) ---
+// Paired via a coarse bucket grid (see procgen/galaxy.js) rather than a
+// direct per-system roll, so both endpoints agree on each other without any
+// global/non-lazy bookkeeping: a bucket either has a pair or it doesn't, and
+// querying either endpoint's system yields the same answer.
+export const WORMHOLE_BUCKET_CELLS = 40;
+export const WORMHOLE_BUCKET_CHANCE = 0.5;
+export const WORMHOLE_SNAP_SEARCH_RADIUS = 4;
+
+// --- Hazards (§10, Phase 2) ---
+export const HAZARD_TYPES = [
+  { key: 'solar-flare', label: 'Solar Flare' },
+  { key: 'radiation-zone', label: 'Radiation Zone' },
+  { key: 'asteroid-field', label: 'Asteroid Field' },
+];
+export const HAZARD_CHANCE_EACH = 0.08;
+export const SOLAR_FLARE_SCAN_MULTIPLIER = 0.6;
+export const RADIATION_ZONE_SCAN_CHARGE_MULTIPLIER = 1.75;
+export const ASTEROID_FIELD_FUEL_MULTIPLIER = 1.4;
+
+// --- Achievements (§11, Phase 2) — flat list, no tiers. `tier` drives the
+// celebration rarity (§11a) when the achievement unlocks.
+export const ACHIEVEMENTS = [
+  { key: 'first-pulsar', label: 'First Pulsar', description: 'Discover a neutron star.', tier: 'notable' },
+  { key: 'first-life', label: 'First Contact', description: 'Discover a biosignature.', tier: 'rare' },
+  { key: 'first-wormhole', label: 'Through the Looking Glass', description: 'Discover a wormhole.', tier: 'rare' },
+  { key: 'first-silicon-life', label: 'Not As We Know It', description: 'Discover silicon-based life.', tier: 'rare' },
+  { key: 'first-harvest', label: 'First Haul', description: 'Harvest minerals for the first time.', tier: 'minor' },
+  { key: 'ten-systems-mapped', label: 'Cartographer', description: 'Map 10 systems.', tier: 'notable' },
+  { key: 'survive-stranding', label: 'Limping Home', description: 'Recover from being stranded.', tier: 'notable' },
+];
+
+// --- Ship cosmetics (§12, Phase 2) — purely visual, no mechanical effect.
+// `unlockAchievement: null` entries are available from the start.
+export const HULL_COLORS = [
+  { key: 'default', label: 'Standard Gray', color: '#c7cbd6', unlockAchievement: null },
+  { key: 'teal', label: 'Deep Teal', color: '#5fc9d8', unlockAchievement: null },
+  { key: 'gold', label: 'Cartographer Gold', color: '#e8a34c', unlockAchievement: 'ten-systems-mapped' },
+  { key: 'verdant', label: 'Verdant Green', color: '#5fd88a', unlockAchievement: 'first-life' },
+  { key: 'violet', label: 'Wormhole Violet', color: '#b98ce0', unlockAchievement: 'first-wormhole' },
+];

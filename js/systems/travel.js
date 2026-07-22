@@ -3,25 +3,42 @@ import {
   FUEL_COST_PER_LY,
   JUMP_OXYGEN_DRAW,
   JUMP_FOOD_DRAW,
+  WORMHOLE_FLAT_FUEL_COST,
   RELAXED_PENALTY,
 } from '../data/constants.js';
 import { getAmount, addAmount, updateLifeSupport } from './resources.js';
 import { runModules } from './modules.js';
+import { scanRangeMultiplier, jumpFuelMultiplier } from './hazards.js';
 
 export function jumpCostMultiplier(save) {
   return Math.pow(RELAXED_PENALTY.jumpCostMultiplier, save.degradedLevel || 0);
 }
 
-/** save.sensorRange is the upgradeable ship stat (§6); this applies the Relaxed-mode degrade penalty (§9) on top. */
-export function effectiveSensorRange(save) {
-  return save.sensorRange * Math.pow(RELAXED_PENALTY.sensorRangeMultiplier, save.degradedLevel || 0);
+/**
+ * save.sensorRange is the upgradeable ship stat (§6); this applies the
+ * Relaxed-mode degrade penalty (§9) and a solar-flare hazard penalty (§10),
+ * if the ship's *current* system has one, on top.
+ */
+export function effectiveSensorRange(save, currentHazard) {
+  const base = save.sensorRange * Math.pow(RELAXED_PENALTY.sensorRangeMultiplier, save.degradedLevel || 0);
+  return base * scanRangeMultiplier(currentHazard);
 }
 
-/** Simple linear-with-minimum jump cost formula (§5). */
-export function computeJumpCost(save, distanceLy) {
-  const mult = jumpCostMultiplier(save);
+/** Simple linear-with-minimum jump cost formula (§5), plus an asteroid-field surcharge (§10) if the destination has one. */
+export function computeJumpCost(save, distanceLy, targetHazard) {
+  const mult = jumpCostMultiplier(save) * jumpFuelMultiplier(targetHazard);
   return {
     fuel: (BASE_JUMP_FUEL_COST + distanceLy * FUEL_COST_PER_LY) * mult,
+    oxygen: JUMP_OXYGEN_DRAW,
+    food: JUMP_FOOD_DRAW,
+  };
+}
+
+/** Wormhole jumps use a flat cost regardless of real-space distance (§2, §3), still subject to the same modifiers. */
+export function computeWormholeJumpCost(save, targetHazard) {
+  const mult = jumpCostMultiplier(save) * jumpFuelMultiplier(targetHazard);
+  return {
+    fuel: WORMHOLE_FLAT_FUEL_COST * mult,
     oxygen: JUMP_OXYGEN_DRAW,
     food: JUMP_FOOD_DRAW,
   };
@@ -31,7 +48,7 @@ export function canAffordJump(save, cost) {
   return getAmount(save, 'fuel') >= cost.fuel;
 }
 
-/** Furthest distance reachable on current fuel — drives the starmap's fuel-range ring. */
+/** Furthest distance reachable on current fuel — drives the starmap's fuel-range ring. Ignores destination-specific hazards since it isn't about one specific target. */
 export function maxJumpRangeLy(save) {
   const mult = jumpCostMultiplier(save);
   const fuel = getAmount(save, 'fuel');
@@ -43,9 +60,8 @@ export function updateStranded(save) {
   save.stranded = getAmount(save, 'fuel') <= 0;
 }
 
-/** Mutates `save` in place. Caller has already confirmed affordability via canAffordJump. */
-export function performJump(save, distanceLy, targetSystemId) {
-  const cost = computeJumpCost(save, distanceLy);
+/** Mutates `save` in place given a precomputed cost (from computeJumpCost/computeWormholeJumpCost) and the real-space distance covered (for stats, regardless of route). */
+export function performJump(save, cost, distanceLy, targetSystemId) {
   if (!canAffordJump(save, cost)) {
     return { ok: false, reason: 'insufficient-fuel' };
   }

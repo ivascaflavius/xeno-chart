@@ -1,8 +1,12 @@
-import { SAVE_STORAGE_KEY, GLOBAL_STORAGE_KEY } from '../data/constants.js';
+import { SAVE_STORAGE_KEY_PREFIX, SAVE_SLOT_COUNT, GLOBAL_STORAGE_KEY } from '../data/constants.js';
 import { createEmptyGlobal, validateSave, validateGlobal } from '../data/schema.js';
 
-export function loadSave() {
-  const raw = localStorage.getItem(SAVE_STORAGE_KEY);
+function keyForSlot(slot) {
+  return `${SAVE_STORAGE_KEY_PREFIX}${slot}`;
+}
+
+export function loadSave(slot) {
+  const raw = localStorage.getItem(keyForSlot(slot));
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
@@ -12,13 +16,22 @@ export function loadSave() {
   }
 }
 
-export function writeSave(save) {
-  save.lastPlayedAt = Date.now();
-  localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(save));
+/** One entry per slot, in slot order; null for empty slots. */
+export function loadAllSaves() {
+  const saves = [];
+  for (let slot = 0; slot < SAVE_SLOT_COUNT; slot++) {
+    saves.push(loadSave(slot));
+  }
+  return saves;
 }
 
-export function deleteSave() {
-  localStorage.removeItem(SAVE_STORAGE_KEY);
+export function writeSave(slot, save) {
+  save.lastPlayedAt = Date.now();
+  localStorage.setItem(keyForSlot(slot), JSON.stringify(save));
+}
+
+export function deleteSave(slot) {
+  localStorage.removeItem(keyForSlot(slot));
 }
 
 export function loadGlobal() {
@@ -26,19 +39,34 @@ export function loadGlobal() {
   if (!raw) return createEmptyGlobal();
   try {
     const parsed = JSON.parse(raw);
-    return validateGlobal(parsed) ? parsed : createEmptyGlobal();
+    if (!validateGlobal(parsed)) return createEmptyGlobal();
+    return normalizeGlobal(parsed);
   } catch {
     return createEmptyGlobal();
   }
+}
+
+/** Backfills fields added to the global shape after it was written, so older globals don't crash on load. */
+function normalizeGlobal(global) {
+  const empty = createEmptyGlobal();
+  return {
+    ...empty,
+    ...global,
+    audio: { ...empty.audio, ...global.audio },
+    haptics: { ...empty.haptics, ...global.haptics },
+    achievements: global.achievements || {},
+  };
 }
 
 export function writeGlobal(global) {
   localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(global));
 }
 
-/** Clears the save slot and all global codex/achievement progress (§14). */
+/** Clears every save slot and all global codex/achievement progress (§14). */
 export function resetAllData() {
-  localStorage.removeItem(SAVE_STORAGE_KEY);
+  for (let slot = 0; slot < SAVE_SLOT_COUNT; slot++) {
+    localStorage.removeItem(keyForSlot(slot));
+  }
   localStorage.removeItem(GLOBAL_STORAGE_KEY);
 }
 

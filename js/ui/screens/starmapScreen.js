@@ -4,14 +4,16 @@ import { statusFor } from '../../systems/resources.js';
 import { RESOURCE_CAPS, LONG_RANGE_SCAN_CHARGE_COST } from '../../data/constants.js';
 import { getSystemsInRadius } from '../../procgen/galaxy.js';
 import { effectiveSensorRange } from '../../systems/travel.js';
+import { icon } from '../components/icons.js';
+import { iconButton } from '../components/iconButton.js';
 
-function resourceChip(save, label, key) {
+function resourceChip(save, iconName, key) {
   const amount = Math.round(save.resources[key]);
   const cap = RESOURCE_CAPS[key];
   const status = statusFor(save.resources[key], cap);
-  return el('div', { className: 'row', style: 'gap:6px' }, [
-    el('span', { className: `status-dot status-${status}` }),
-    el('span', { text: `${label} ${amount}/${cap}` }),
+  return el('div', { className: 'row resource-chip', style: 'gap:4px' }, [
+    el('span', { className: `resource-icon status-${status}`, html: icon(iconName) }),
+    el('span', { text: `${amount}/${cap}` }),
   ]);
 }
 
@@ -19,13 +21,15 @@ export function render(container, gs) {
   const save = gs.save;
   const sys = gs.currentSystem();
 
-  const hudTop = el('div', { className: 'row' }, [
-    resourceChip(save, 'Fuel', 'fuel'),
-    resourceChip(save, 'Charge', 'charge'),
-    resourceChip(save, 'Oxygen', 'oxygen'),
-    resourceChip(save, 'Food', 'food'),
+  const hudTop = el('div', { className: 'row row-tight' }, [
+    resourceChip(save, 'fuel', 'fuel'),
+    resourceChip(save, 'charge', 'charge'),
+    resourceChip(save, 'oxygen', 'oxygen'),
+    resourceChip(save, 'food', 'food'),
     el('div', { className: 'spacer' }),
-    el('button', { className: 'btn', text: 'Pause', onClick: () => gs.show('PAUSED') }),
+    iconButton({
+      iconName: 'pause', label: 'Pause', iconOnly: true, onClick: () => gs.show('PAUSED'),
+    }),
   ]);
 
   const lifeSupportBanner = save.lifeSupportCountdown !== null
@@ -35,13 +39,22 @@ export function render(container, gs) {
     })
     : null;
 
+  const hazardBanner = sys.hazard
+    ? el('div', { className: 'banner banner-warn', text: `${sys.hazard.label} in this system.` })
+    : null;
+
   const strandedBanner = save.stranded
     ? el('div', { className: 'banner banner-danger row' }, [
       el('span', { text: 'Stranded — insufficient fuel to jump.' }),
       el('div', { className: 'spacer' }),
       save.distressBeaconUsed
-        ? el('span', { className: 'subtitle', text: 'Distress beacon already used' })
-        : el('button', { className: 'btn btn-danger', text: 'Send Distress Beacon', onClick: () => gs.sendDistressBeacon() }),
+        ? el('span', { className: 'subtitle', text: 'Beacon used' })
+        : iconButton({
+          iconName: 'distress',
+          label: 'Distress Beacon',
+          className: 'btn btn-danger',
+          onClick: () => gs.sendDistressBeacon(),
+        }),
     ])
     : null;
 
@@ -53,26 +66,32 @@ export function render(container, gs) {
     }
   });
 
-  const nearby = getSystemsInRadius(gs.baseSeedInt, sys.pos, effectiveSensorRange(save));
+  const nearby = getSystemsInRadius(gs.baseSeedInt, sys.pos, effectiveSensorRange(save, sys.hazard));
   const hasNewToReveal = nearby.some((stub) => !save.discoveries[stub.id]);
   const canAffordScan = save.resources.charge >= LONG_RANGE_SCAN_CHARGE_COST;
   const canScan = canAffordScan && hasNewToReveal;
-  const actionRow = el('div', { className: 'row' }, [
-    el('button', {
+  const actionRow = el('div', { className: 'row row-compact' }, [
+    iconButton({
+      iconName: 'scan',
+      label: hasNewToReveal ? `Scan (${LONG_RANGE_SCAN_CHARGE_COST})` : 'Done',
       className: 'btn btn-primary',
-      text: hasNewToReveal ? `Long-range Scan (${LONG_RANGE_SCAN_CHARGE_COST} charge)` : 'Long-range Scan (nothing new nearby)',
       disabled: !canScan,
       onClick: () => gs.longRangeScan(),
     }),
-    el('button', { className: 'btn', text: 'Ship Systems', onClick: () => gs.show('SHIP_SYSTEMS') }),
-    el('button', { className: 'btn', text: 'Codex', onClick: () => gs.show('CODEX') }),
+    iconButton({ iconName: 'currentSystem', label: 'System', onClick: () => gs.show('SYSTEM_VIEW') }),
+    iconButton({ iconName: 'ship', label: 'Ship', onClick: () => gs.show('SHIP_SYSTEMS') }),
+    iconButton({ iconName: 'codex', label: 'Codex', onClick: () => gs.show('CODEX') }),
   ]);
 
   container.appendChild(el('div', { className: 'screen' }, [
     hudTop,
     lifeSupportBanner,
+    hazardBanner,
     strandedBanner,
-    el('p', { className: 'subtitle', text: `${save.galaxyName} · Cycle ${save.cycle} · ${sys.star.label}` }),
+    el('p', {
+      className: 'subtitle',
+      text: `${save.galaxyName} · Cycle ${save.cycle} · ${sys.star.label} · ${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'}`,
+    }),
     starmap.el,
     actionRow,
   ]));

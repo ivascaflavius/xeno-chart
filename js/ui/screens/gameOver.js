@@ -1,7 +1,9 @@
 import { el } from '../components/dom.js';
+import { iconButton } from '../components/iconButton.js';
 
 export function render(container, gs) {
   const save = gs.save;
+  const commanderName = gs.global.commanderName?.trim();
   container.appendChild(el('div', { className: 'screen' }, [
     el('p', { className: 'title', text: 'Expedition Over' }),
     el('p', { className: 'subtitle', text: 'Life support failed. The expedition ends here.' }),
@@ -13,10 +15,12 @@ export function render(container, gs) {
       el('p', {}, [`Distance traveled: ${save.stats.distanceTraveled.toFixed(1)} ly`]),
       el('p', {}, [`Cycles survived: ${save.cycle}`]),
     ]),
+    commanderName ? el('p', { className: 'subtitle', text: `Fly safe, ${commanderName}.` }) : null,
     el('div', { className: 'spacer' }),
-    el('button', {
+    iconButton({
+      iconName: 'rocket',
+      label: 'Start New Expedition',
       className: 'btn btn-primary btn-block',
-      text: 'Start New Expedition',
       onClick: () => gs.show('NEW_EXPEDITION'),
     }),
   ]));
