@@ -81,6 +81,7 @@ export function render(container, gs) {
           el('div', { className: 'lineage-icon', style: 'width:26px;height:26px;flex-shrink:0', html: lifePortrait(planet.id, planet.life) }),
           el('span', {
             style: 'flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;',
+            title: `${planet.life.stage === 'intelligent' ? 'Intelligent life identified' : 'Biosignature identified'} — ${planet.life.speciesName}`,
             text: `${planet.life.stage === 'intelligent' ? 'Intelligent life identified' : 'Biosignature identified'} — ${planet.life.speciesName}`,
           }),
         ]),
@@ -93,7 +94,8 @@ export function render(container, gs) {
         el('span', { className: 'icon-chip', html: icon('dna', 16) }),
         el('span', {
           style: 'flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;',
-          text: 'Biosignature detected — sample to identify',
+          title: 'Biosignature detected',
+          text: 'Biosignature detected',
         }),
         iconButton({
           iconName: 'sample',
