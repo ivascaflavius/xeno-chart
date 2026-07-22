@@ -11,6 +11,7 @@ export function render(container, gs) {
     el('div', { className: 'stack menu-title-block' }, [
       el('p', { className: 'title', text: 'Xeno-Chart' }),
       el('p', { className: 'subtitle', text: 'Scan the dark. Chart the unknown.' }),
+      el('p', { className: 'subtitle', style: 'color:var(--warn)', text: 'Experimental build — still in active development.' }),
       commanderName ? el('p', { className: 'subtitle', text: `Welcome back, ${commanderName}.` }) : null,
     ]),
     el('div', { className: 'spacer' }),

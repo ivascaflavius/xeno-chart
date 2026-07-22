@@ -69,7 +69,7 @@ deliberately trims scope. Follow these simplifications unless told otherwise:
 - **Genesis lineage web** (the panspermia mystery): this is a **Phase 3** feature.
   Build the underlying data (each life discovery gets a hidden `genesisMarkerId`)
   in Phase 1 so it's cheap to visualize later, but do not build the lineage-web
-  codex view or naming UI until Phase 3.
+  codex view or naming UI until Phase 3. *(Implemented — see §11.)*
 - **Wormholes**: v1 wormholes are simple — fixed low cost, always two-way, always
   fully revealed once close-scanned. Skip "unstable/one-way/uncertain-exit"
   variants until Phase 3.
@@ -301,6 +301,43 @@ total number of simultaneously-rendered detailed SVG portraits low (cap it, e.g.
 via viewport culling) — this is a real risk area, test on a real mobile device
 early rather than late.
 
+### 7a. Orbital zones, habitable-zone bias, and physical stats (implemented post-Phase-3)
+
+The data model has no literal orbital-distance value — a planet's generation
+`index` within its system (0 = innermost) stands in for it. From that:
+
+- **Habitable zone**: `procgen/habitability.js` derives a target index band
+  per system from the star's class (hot O/B stars push the zone outward and
+  widen it slightly; cool M dwarfs pull it in tight, matching real habitable-
+  zone behavior), typically covering exactly one planet slot. Life is far more
+  likely to roll on a planet inside that band than outside it.
+- **Zone-restricted planet classes**: each `PLANET_CLASSES` entry declares
+  which zone(s) it can generate in — molten/rocky/gas-giant (as a "hot
+  Jupiter") close in; rocky/earth-like/ocean/gas-giant in the habitable band;
+  gas-giant/ice-giant/ice/barren further out. A planet is only ever rolled
+  from the classes eligible for the zone it actually landed in, so (for
+  example) an ice world can no longer generate inside the habitable zone.
+- **`earth-like`** is an additional terrestrial class alongside `ocean` —
+  the visibly "habitable-looking" world (blue base, green/brown continents).
+  Only classes with surface water (`ocean`, `earth-like`, `ice`) can host
+  complex/intelligent life; a planet without it clamps down to simple/microbial.
+- **`ice-giant`** is a Neptune/Uranus-style outer-zone class distinct from
+  `gas-giant` (fewer, fainter bands); a gas giant that lands in the inner
+  zone is flagged as a "hot Jupiter" and never renders a ring.
+- **Moons**: each planet rolls a class-appropriate moon count (cosmetic only),
+  shown as an animated orbit diagram in Scan Detail; System View shows a
+  matching animated orbit diagram of the system's planets around its star,
+  with the habitable-zone band shaded in.
+- **Physical stats**: System View shows the star's temperature (K), radius
+  (solar radii), and mass (solar masses); Scan Detail shows the planet's
+  surface temperature (K), radius (Earth radii), and mass (Earth masses).
+  All four are derived from the existing `massRoll`/`sizeRoll` fields via
+  per-class realistic-ish ranges — no new RNG draws.
+- **Naming**: every system gets a catalog-style name (e.g. `Kepler-437`),
+  with planets designated off it (`Kepler-437 B`); ships default to a
+  generated name (e.g. "Iron Pilgrim") when the player leaves the field blank
+  at New Expedition. All deterministic from the seed.
+
 ## 8. Technical conventions (follow the responsive-webapp skill)
 
 - `100dvh`, not `100vh`, for full-height layout; lock scroll/bounce at the root
@@ -345,6 +382,15 @@ players can factor them into jump planning), not as surprise ambushes.
 - Store achievement + codex progress **globally** (across all saves/expeditions),
   separate from per-expedition save state, so completionist progress persists
   even if a run ends
+- **Lineage tab** (Phase 3, implemented): a fourth codex track grouping this
+  expedition's life discoveries by their hidden `genesisMarkerId` into named
+  clades (e.g. "Clade Hydroix VIII"), tracked per-save in `lifeDiscoveries`
+  since a genesis marker is only meaningful within one seed's galaxy
+- **Take a Sample** (implemented, refines §3's "no player input required for
+  v1" note): a close-range scan reveals that a biosignature is present, but
+  identifying it — and crediting the codex/achievements/lineage tab, and (for
+  intelligent life) triggering the first-contact encounter — waits for a
+  separate, deliberate "Take Sample" action in Scan Detail
 
 ## 11a. Discovery & achievement feedback (toasts, confetti)
 
@@ -382,11 +428,13 @@ Implementation notes:
 ## 12. Ship identity & customization
 
 - Player names their ship at expedition start (text input, no validation needed
-  beyond length limit)
+  beyond length limit); leaving it blank generates a name (e.g. "Iron Pilgrim")
+  deterministically from the seed rather than falling back to a placeholder
 - A small set of cosmetic hull-color/pattern options, unlocked via achievements,
   purely visual, no mechanical effect
-- Optionally, 2 starting ship "classes" (e.g. scanner-focused vs. fuel-efficient)
-  selectable at New Expedition — nice-to-have, not required for Phase 1
+- Ship "classes" selectable at New Expedition (implemented, Phase 3): Standard
+  (no bonus/penalty), Scanner-Focused (+25% sensor range), and Fuel-Efficient
+  (-20% jump fuel cost) — a mechanical multiplier pair only, no new subsystems
 
 ### 12a. Commander name
 
@@ -484,6 +532,12 @@ system views is working, layer in:
 Treat this as **Phase 3 work**: it must not block or complicate getting the flat
 functional version of Phase 1 working and playable first.
 
+*(Implemented.)* Nebula backgrounds, black holes/pulsars/magnetars/young-star
+motifs, planet self-rotation (a horizontal texture scroll clipped to the
+disc, reading as a globe spinning about a vertical axis, with a small
+deterministic minority spinning face-on instead), and star flicker are all
+in place — see `render/nebula.js`, `render/portraits.js`, `render/orbitDiagram.js`.
+
 ## 15b. Visual identity — logo, favicon, main menu scene
 
 **Logo/favicon**: a stylized ringed planet mark (a filled circle with a tilted
@@ -516,6 +570,10 @@ smooth on mobile.
   setup, no need to wait. Only the animated main menu scene is Phase 3 polish;
   Phase 1's main menu can show the same ship/planet composition as a static
   image until the animation is built.
+
+*(Implemented — see `render/mainMenuScene.js`.)* The main menu also carries a
+visible "Experimental build — still in active development" line, since the
+game has not reached a finished/1.0 state.
 
 ## 15c. Haptics (mobile)
 
@@ -571,8 +629,31 @@ data → lineage-web codex view + clade naming, expanded biochemistry types if
 still desired, ship class selection at New Expedition, nebula backgrounds and
 special-object rendering (§15a), animated main menu scene (§15b).
 
-Do not skip ahead to Phase 2/3 content while Phase 1 has rough edges — a small,
-fully-working core loop is more valuable than a large, half-working one.
+**Status: Phases 0-3 are all implemented.** Do not skip ahead to Phase 2/3
+content while Phase 1 has rough edges — a small, fully-working core loop is
+more valuable than a large, half-working one.
+
+### 16b. Post-Phase-3 polish (implemented, beyond the original phase list)
+
+Once Phase 3 landed, several rounds of player-facing polish followed. These
+weren't part of the original phase plan but are now part of the shipped
+build; each is documented in more detail at its relevant section above:
+
+- **Take a Sample** action gating biosignature codex/achievement crediting
+  and first-contact resolution, separate from the close-range scan itself (§11)
+- **Lineage tab** in the Codex, grouping discoveries into named clades (§11)
+- **Orbital zones**: planet class now depends on where it sits relative to a
+  star-class-driven habitable zone, which is also visualized in System View;
+  a new `ice-giant` class and "hot Jupiter" flag round out the giant-planet
+  variety (§7a)
+- **Moons + animated orbit diagrams** in both System View (planets around
+  the star) and Scan Detail (moons around the planet) (§7a)
+- **Physical stats** (temperature, radius, mass) for stars and planets (§7a)
+- **Procedural naming** for systems, planets, and (when left blank) ships (§7a, §12)
+- Planet self-rotation, star flicker, and a fixed tooltip-cleanup bug on fast
+  screen transitions (a stray hover tooltip could survive a screen change)
+- An **"Experimental build"** notice on the main menu, since the game is not
+  yet a finished/1.0 release (§15b)
 
 ### 16a. Phase 1 definition of done
 
