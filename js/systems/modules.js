@@ -1,0 +1,54 @@
+import { MODULES } from '../data/constants.js';
+import { getAmount, addAmount, capFor, statusFor } from './resources.js';
+
+const MODULE_ORDER = ['refinery', 'electrolysis', 'hydroponics', 'reactor'];
+
+function runOneModule(save, key) {
+  const cfg = MODULES[key];
+  let fraction = 1;
+
+  const available = getAmount(save, cfg.input);
+  fraction = Math.min(fraction, cfg.ratePerCycle > 0 ? available / cfg.ratePerCycle : 0);
+
+  if (cfg.secondaryInput) {
+    const secAvailable = getAmount(save, cfg.secondaryInput);
+    fraction = Math.min(fraction, cfg.secondaryRatePerCycle > 0 ? secAvailable / cfg.secondaryRatePerCycle : 0);
+  }
+
+  fraction = Math.max(0, Math.min(1, fraction));
+  if (fraction <= 0) return;
+
+  addAmount(save, cfg.input, -cfg.ratePerCycle * fraction);
+  if (cfg.secondaryInput) {
+    addAmount(save, cfg.secondaryInput, -cfg.secondaryRatePerCycle * fraction);
+  }
+  for (const [outKey, outRate] of Object.entries(cfg.outputs)) {
+    addAmount(save, outKey, outRate * fraction);
+  }
+}
+
+/** Advance all modules by `cycles` (default 1), each running independently in a fixed order. */
+export function runModules(save, cycles = 1) {
+  for (let i = 0; i < cycles; i++) {
+    for (const key of MODULE_ORDER) {
+      runOneModule(save, key);
+    }
+  }
+}
+
+/** Status rows for the ship systems dashboard (§5). */
+export function getModuleStatuses(save) {
+  return MODULE_ORDER.map((key) => {
+    const cfg = MODULES[key];
+    const amount = getAmount(save, cfg.input);
+    const cap = capFor(cfg.input);
+    return {
+      key,
+      label: cfg.label,
+      input: cfg.input,
+      amount,
+      cap,
+      status: statusFor(amount, cap),
+    };
+  });
+}
