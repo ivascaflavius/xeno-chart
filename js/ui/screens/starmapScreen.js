@@ -90,7 +90,7 @@ export function render(container, gs) {
     strandedBanner,
     el('p', {
       className: 'subtitle',
-      text: `${save.galaxyName} · Cycle ${save.cycle} · ${sys.star.label} · ${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'}`,
+      text: `${save.galaxyName} · Cycle ${save.cycle} · ${sys.name} (${sys.star.label}) · ${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'}`,
     }),
     starmap.el,
     actionRow,

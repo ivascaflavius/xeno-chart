@@ -34,7 +34,7 @@ function showTooltip(html, x, y) {
   positionTooltip(x, y);
 }
 
-function hideTooltip() {
+export function hideTooltip() {
   if (tooltipEl) tooltipEl.style.display = 'none';
 }
 

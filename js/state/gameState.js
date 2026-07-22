@@ -1,7 +1,7 @@
 import { createEmptySave } from '../data/schema.js';
 import { seedToInt } from '../procgen/prng.js';
 import { getStartSystemId, getSystem, getSystemsInRadius, distanceLy } from '../procgen/galaxy.js';
-import { generateGalaxyName } from '../procgen/names.js';
+import { generateGalaxyName, generateShipName } from '../procgen/names.js';
 import {
   BASE_SENSOR_RANGE_LY,
   STARTING_RESOURCES,
@@ -11,11 +11,13 @@ import {
   STAR_CLASSES,
   PLANET_CLASSES,
   ACHIEVEMENTS,
+  MODULES,
+  HOSTILE_MODULE_DISABLE_CYCLES,
 } from '../data/constants.js';
 import {
   trySpend, addAmount, getAmount, capFor, updateLifeSupport,
 } from '../systems/resources.js';
-import { runModules } from '../systems/modules.js';
+import { runModules, disableModule } from '../systems/modules.js';
 import {
   computeJumpCost,
   computeWormholeJumpCost,
@@ -28,6 +30,7 @@ import {
 import { closeScanChargeMultiplier } from '../systems/hazards.js';
 import * as saveManager from '../save/saveManager.js';
 import { enqueueCelebration } from '../ui/components/celebration.js';
+import { hideTooltip } from '../ui/components/tooltip.js';
 import {
   playStinger, playWarning, configure as configureAudio, startAmbient,
 } from '../audio/audioManager.js';
@@ -71,6 +74,10 @@ const SCREENS = {
 function normalizeSave(save) {
   if (!save.scanHistory) save.scanHistory = [];
   if (!save.hullColor) save.hullColor = 'default';
+  if (!save.shipClass) save.shipClass = 'standard';
+  if (!save.lifeDiscoveries) save.lifeDiscoveries = {};
+  if (!save.sampledPlanets) save.sampledPlanets = {};
+  if (save.moduleDisabled === undefined) save.moduleDisabled = null;
   return save;
 }
 
@@ -106,6 +113,10 @@ class GameState {
   }
 
   render() {
+    // A hover tooltip lives in a body-level singleton div (see ui/components/tooltip.js),
+    // outside this.root, so wiping this.root alone can leave a stale one on screen if a
+    // screen change happens before the mouse fires its own mouseleave.
+    hideTooltip();
     this.root.innerHTML = '';
     SCREENS[this.screen].render(this.root, this);
   }
@@ -158,7 +169,7 @@ class GameState {
   }
 
   startNewExpedition({
-    seedInput, difficulty, shipName, hullColor, slot,
+    seedInput, difficulty, shipName, hullColor, shipClass, slot,
   }) {
     const seed = (seedInput && seedInput.trim()) || String(Math.floor(Math.random() * 1e9));
     const baseSeedInt = seedToInt(seed);
@@ -169,8 +180,9 @@ class GameState {
     save.seed = seed;
     save.galaxyName = galaxyName;
     save.difficulty = difficulty;
-    save.shipName = (shipName && shipName.trim()) || 'Unnamed Vessel';
+    save.shipName = (shipName && shipName.trim()) || generateShipName(baseSeedInt);
     save.hullColor = hullColor || 'default';
+    save.shipClass = shipClass || 'standard';
     save.createdAt = Date.now();
     save.position.systemId = startSystemId;
     save.resources = { ...STARTING_RESOURCES };
@@ -298,7 +310,7 @@ class GameState {
     }
     const prior = this.save.discoveries[systemId];
     const alreadyClose = prior?.tier === 'close';
-    this.save.discoveries[systemId] = { tier: 'close', lifeCounted: prior?.lifeCounted || false };
+    this.save.discoveries[systemId] = { tier: 'close' };
 
     const starDef = STAR_CLASSES.find((c) => c.key === sys.star.class);
     this.recordCodex('stellar', sys.star.class, starDef.weight <= 2 ? 'notable' : 'minor', sys.star.label);
@@ -307,21 +319,15 @@ class GameState {
     for (const planet of sys.planets) {
       const planetDef = PLANET_CLASSES.find((c) => c.key === planet.class);
       this.recordCodex('planetary', planet.class, planetDef.weight <= 2 ? 'notable' : 'minor', planet.label);
-      if (planet.life) {
-        this.recordCodex('biological', `${planet.life.biochemistry}:${planet.life.stage}`, 'rare', planet.life.speciesName);
-        this.unlockAchievement('first-life');
-        if (planet.life.biochemistry === 'silicon') this.unlockAchievement('first-silicon-life');
-      }
+      // Biosignature presence is revealed by the scan itself (visible in Scan Detail);
+      // codex/achievement crediting waits for a deliberate takeSample() action (§11, Phase 3 polish).
     }
+
+    if (sys.star.class === 'BH') this.unlockAchievement('first-black-hole');
+    if (sys.star.class === 'MAG') this.unlockAchievement('first-magnetar');
 
     if (sys.wormholeTo && !alreadyClose) {
       this.unlockAchievement('first-wormhole');
-    }
-
-    const lifeCount = sys.planets.filter((p) => p.life).length;
-    if (!this.save.discoveries[systemId].lifeCounted && lifeCount > 0) {
-      this.save.stats.lifeFound += lifeCount;
-      this.save.discoveries[systemId].lifeCounted = true;
     }
 
     this.checkMappingAchievement();
@@ -332,6 +338,54 @@ class GameState {
     } else {
       this.refresh();
     }
+    return { ok: true };
+  }
+
+  /**
+   * Credits a detected biosignature to the codex/achievements — deliberately
+   * separate from closeRangeScan (§11, Phase 3 polish): the scan reveals that
+   * something is there, but recording it (and triggering a first-contact
+   * encounter for intelligent life) waits for the player to choose to act on
+   * it. Idempotent per planet via save.sampledPlanets.
+   */
+  takeSample(planetId) {
+    const [systemId] = planetId.split(':p');
+    if (systemId !== this.save.position.systemId) return { ok: false };
+    if (this.save.sampledPlanets[planetId]) return { ok: false, reason: 'already-sampled' };
+
+    const sys = this.currentSystem();
+    const planet = sys.planets.find((p) => p.id === planetId);
+    if (!planet?.life) return { ok: false, reason: 'no-biosignature' };
+
+    this.save.sampledPlanets[planetId] = true;
+    this.save.stats.lifeFound += 1;
+
+    this.recordCodex('biological', `${planet.life.biochemistry}:${planet.life.stage}`, 'rare', planet.life.speciesName);
+    this.unlockAchievement('first-life');
+    if (planet.life.biochemistry === 'silicon') this.unlockAchievement('first-silicon-life');
+
+    this.save.lifeDiscoveries[planetId] = {
+      genesisMarkerId: planet.life.genesisMarkerId,
+      speciesName: planet.life.speciesName,
+      biochemistry: planet.life.biochemistry,
+      biochemistryLabel: planet.life.biochemistryLabel,
+      stage: planet.life.stage,
+      stageLabel: planet.life.stageLabel,
+      systemId: sys.id,
+    };
+
+    if (planet.life.stage === 'intelligent') {
+      this.unlockAchievement('first-intelligent-life');
+      if (planet.life.encounter === 'hostile') {
+        disableModule(this.save, planet.life.hostileModuleKey);
+        this.flashMessage = `First contact with ${planet.life.speciesName} (${planet.life.techTierLabel}) turned hostile — the ${MODULES[planet.life.hostileModuleKey].label} has been disabled for ${HOSTILE_MODULE_DISABLE_CYCLES} cycles.`;
+      } else {
+        this.flashMessage = `First contact with ${planet.life.speciesName} (${planet.life.techTierLabel}) was peaceful.`;
+      }
+    }
+
+    this.persistSave();
+    this.refresh();
     return { ok: true };
   }
 

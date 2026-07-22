@@ -1,8 +1,11 @@
 import { el } from '../components/dom.js';
-import { planetPortrait } from '../../render/portraits.js';
+import { planetPortrait, lifePortrait } from '../../render/portraits.js';
 import { getAmount, capFor } from '../../systems/resources.js';
 import { cargoBar } from '../components/cargoBar.js';
 import { iconButton } from '../components/iconButton.js';
+import { planetDesignation } from '../../procgen/names.js';
+import { moonOrbitOverlayHtml } from '../../render/orbitDiagram.js';
+import { planetStats } from '../../procgen/stats.js';
 
 export function render(container, gs) {
   const sys = gs.currentSystem();
@@ -26,17 +29,52 @@ export function render(container, gs) {
     ]);
   });
 
+  const sampled = !!gs.save.sampledPlanets[planet.id];
+
   const lifePanel = planet.life
-    ? el('div', { className: 'panel stack' }, [
-      el('p', { className: 'title', text: 'Biosignature Detected' }),
-      el('p', { text: planet.life.speciesName }),
+    ? el('div', { className: 'panel stack' }, sampled ? [
+      el('div', { className: 'row' }, [
+        el('div', { className: 'lineage-icon', style: 'width:40px;height:40px', html: lifePortrait(planet.id, planet.life) }),
+        el('div', { className: 'stack', style: 'gap:2px' }, [
+          el('p', { className: 'title', text: planet.life.stage === 'intelligent' ? 'Intelligent Life Identified' : 'Biosignature Identified', style: 'font-size:1.1rem' }),
+          el('p', { text: planet.life.speciesName }),
+        ]),
+      ]),
       el('p', { className: 'subtitle', text: `${planet.life.biochemistryLabel} · ${planet.life.stageLabel}` }),
+      planet.life.stage === 'intelligent'
+        ? el('p', { className: 'subtitle', text: `Tech level: ${planet.life.techTierLabel} · First contact was ${planet.life.encounter}.` })
+        : null,
+    ] : [
+      el('p', { className: 'title', text: 'Biosignature Detected' }),
+      el('p', { className: 'subtitle', text: 'An unidentified organism — take a sample to identify it and log it in the Codex.' }),
+      iconButton({
+        iconName: 'sample',
+        label: 'Take Sample',
+        className: 'btn btn-primary',
+        onClick: () => gs.takeSample(planet.id),
+      }),
     ])
     : null;
 
+  const moonCount = planet.moonCount || 0;
+  const orbitView = el('div', { style: 'position:relative; width:220px; height:220px; margin:0 auto' }, [
+    el('div', { style: 'position:absolute; left:55px; top:55px; width:110px; height:110px', html: planetPortrait(planet.id, planet) }),
+    el('div', { html: moonOrbitOverlayHtml(moonCount) }),
+  ]);
+
+  const stats = planetStats(planet);
+  const statsText = `${stats.surfaceTempK.toLocaleString()} K · ${stats.radiusEarth} R⊕ · ${stats.massEarth} M⊕`;
+
   container.appendChild(el('div', { className: 'screen' }, [
-    el('p', { className: 'title', text: planet.label }),
-    el('div', { style: 'width:140px;height:140px;margin:0 auto', html: planetPortrait(planet.id, planet) }),
+    el('p', { className: 'title', text: planetDesignation(sys.name, planet.index) }),
+    el('p', { className: 'subtitle', text: planet.label, style: 'margin-top:-12px' }),
+    el('p', { className: 'subtitle', style: 'text-align:center', text: statsText }),
+    orbitView,
+    el('p', {
+      className: 'subtitle',
+      style: 'text-align:center',
+      text: moonCount === 0 ? 'No moons detected.' : `${moonCount} moon${moonCount === 1 ? '' : 's'} orbiting.`,
+    }),
     flash ? el('div', { className: 'banner banner-info', text: flash }) : null,
     cargoBar(gs.save),
     el('div', { className: 'panel stack' }, mineralRows.length

@@ -5,8 +5,19 @@ import {
 } from '../../data/constants.js';
 import { attachHoverTooltip } from '../components/tooltip.js';
 import { iconButton } from '../components/iconButton.js';
+import { generateCladeName } from '../../procgen/names.js';
 
-const TABS = ['stellar', 'planetary', 'biological', 'achievements'];
+const TABS = ['stellar', 'planetary', 'biological', 'lineage', 'achievements'];
+
+/** genesisMarkerId -> discovery[] this expedition, for the lineage-web view (§3, §11, Phase 3). */
+function groupByClade(lifeDiscoveries) {
+  const groups = new Map();
+  for (const discovery of Object.values(lifeDiscoveries)) {
+    if (!groups.has(discovery.genesisMarkerId)) groups.set(discovery.genesisMarkerId, []);
+    groups.get(discovery.genesisMarkerId).push(discovery);
+  }
+  return groups;
+}
 
 function buildItems(track) {
   if (track === 'stellar') {
@@ -59,6 +70,42 @@ export function render(container, gs) {
     }
   }
 
+  function renderLineage() {
+    contentWrap.className = 'stack';
+    contentWrap.innerHTML = '';
+
+    if (!gs.save || !gs.baseSeedInt) {
+      contentWrap.appendChild(el('p', {
+        className: 'subtitle',
+        text: 'Start or resume an expedition to see the lineage web for its galaxy — genesis markers are tied to one specific seed.',
+      }));
+      return;
+    }
+
+    const groups = groupByClade(gs.save.lifeDiscoveries || {});
+    if (groups.size === 0) {
+      contentWrap.appendChild(el('p', { className: 'subtitle', text: 'No life discoveries yet this expedition.' }));
+      return;
+    }
+
+    for (const [genesisMarkerId, members] of groups) {
+      const cladeName = generateCladeName(gs.baseSeedInt, genesisMarkerId);
+      contentWrap.appendChild(el('div', { className: 'panel stack' }, [
+        el('p', { className: 'title', text: cladeName }),
+        el('p', { className: 'subtitle', text: `${members.length} ${members.length === 1 ? 'discovery' : 'discoveries'} sharing this genesis marker` }),
+        ...members.map((m) => el('div', { className: 'row' }, [
+          el('div', {
+            className: 'lineage-icon',
+            html: lifePortrait(`${m.genesisMarkerId}:${m.speciesName}`, m),
+          }),
+          el('span', { text: m.speciesName }),
+          el('div', { className: 'spacer' }),
+          el('span', { className: 'subtitle', text: `${m.biochemistryLabel} · ${m.stageLabel}` }),
+        ])),
+      ]));
+    }
+  }
+
   function renderAchievements() {
     contentWrap.className = 'stack';
     contentWrap.innerHTML = '';
@@ -77,6 +124,8 @@ export function render(container, gs) {
   function renderContent() {
     if (active === 'achievements') {
       renderAchievements();
+    } else if (active === 'lineage') {
+      renderLineage();
     } else {
       renderGrid();
     }

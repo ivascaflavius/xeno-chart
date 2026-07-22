@@ -2,6 +2,7 @@ import { getSystemsInBox, getSystem, distanceLy } from '../procgen/galaxy.js';
 import { effectiveSensorRange, maxJumpRangeLy } from '../systems/travel.js';
 import { attachHoverTooltip } from '../ui/components/tooltip.js';
 import { HULL_COLORS } from '../data/constants.js';
+import { getNebulaBlobsInBox } from './nebula.js';
 
 function hullColorHex(hullColorKey) {
   return HULL_COLORS.find((h) => h.key === hullColorKey)?.color || HULL_COLORS[0].color;
@@ -44,7 +45,7 @@ function buildSystemTooltipHtml(baseSeedInt, save, systemId, tier, dist) {
 
   const sys = getSystem(baseSeedInt, systemId);
   const lines = [
-    `<strong>${sys.star.label}</strong>`,
+    `<strong>${sys.name}</strong> · ${sys.star.label}`,
     `${sys.planets.length} planet${sys.planets.length === 1 ? '' : 's'} · ${dist.toFixed(1)} ly`,
   ];
   if (sys.hazard) lines.push(`⚠ ${sys.hazard.label}`);
@@ -134,6 +135,24 @@ export function createStarmap(onSelectSystem) {
 
     const ringCenter = lyToPx(currentPos);
 
+    // Nebula backgrounds (§15a) — drawn first so everything else (fog,
+    // travel path, system markers, HUD) layers on top and stays readable.
+    const nebulaGroup = svgEl('g', { class: 'nebula-layer' });
+    viewport.appendChild(nebulaGroup);
+    for (const blob of getNebulaBlobsInBox(
+      baseSeedInt,
+      view.cx - half - 6, view.cx + half + 6,
+      view.cy - half - 6, view.cy + half + 6,
+    )) {
+      const bp = lyToPx(blob);
+      const br = blob.radius * view.scale;
+      for (const [mult, opacity] of [[1, 0.05], [0.65, 0.06], [0.35, 0.07]]) {
+        nebulaGroup.appendChild(svgEl('circle', {
+          cx: bp.x.toFixed(1), cy: bp.y.toFixed(1), r: (br * mult).toFixed(1), fill: blob.color, opacity,
+        }));
+      }
+    }
+
     // Fog trail — every past long-range scan leaves a lighter patch behind,
     // so previously-covered territory reads differently from true darkness
     // even after you've moved on. All revealed-area fills share one group
@@ -219,11 +238,40 @@ export function createStarmap(onSelectSystem) {
       const p = lyToPx(stub.pos);
       let color = '#5a6072';
       let radius = 4;
+      let star = null;
       if (tier === 'long' || tier === 'close') {
         const sys = getSystem(baseSeedInt, stub.id);
-        color = sys.star.color;
+        star = sys.star;
+        color = star.color;
         radius = tier === 'close' ? 7 : 6;
       }
+
+      // Special-object marker glyphs (§15a) — cheap overlay shapes so
+      // black holes/pulsars/magnetars/young systems read as visually
+      // distinct even at marker scale, not just a differently-colored dot.
+      if (star?.young) {
+        viewport.appendChild(svgEl('circle', {
+          cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: (radius * 2.2).toFixed(1), fill: '#8ecbe0', opacity: 0.12,
+        }));
+      }
+      if (star?.class === 'BH') {
+        viewport.appendChild(svgEl('ellipse', {
+          cx: p.x.toFixed(1), cy: p.y.toFixed(1), rx: (radius * 1.8).toFixed(1), ry: (radius * 0.6).toFixed(1),
+          fill: 'none', stroke: '#ffcf7a', 'stroke-width': 1.2, opacity: 0.6,
+        }));
+      } else if (star?.class === 'NS') {
+        const beams = svgEl('g', { class: 'marker-pulsar-beams', style: `transform-origin:${p.x.toFixed(1)}px ${p.y.toFixed(1)}px` });
+        beams.appendChild(svgEl('line', {
+          x1: p.x.toFixed(1), y1: (p.y - radius * 2.4).toFixed(1), x2: p.x.toFixed(1), y2: (p.y + radius * 2.4).toFixed(1),
+          stroke: color, 'stroke-width': 1, opacity: 0.4,
+        }));
+        viewport.appendChild(beams);
+      } else if (star?.class === 'MAG') {
+        viewport.appendChild(svgEl('circle', {
+          cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: (radius * 1.6).toFixed(1), fill: 'none', stroke: color, 'stroke-width': 1, 'stroke-dasharray': '2 3', opacity: 0.6, class: 'marker-magnetar-arcs',
+        }));
+      }
+
       const circle = svgEl('circle', {
         cx: p.x.toFixed(1),
         cy: p.y.toFixed(1),

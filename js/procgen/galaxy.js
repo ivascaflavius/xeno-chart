@@ -10,6 +10,7 @@ import {
 } from '../data/constants.js';
 import { generateStar } from './stars.js';
 import { generatePlanets } from './planets.js';
+import { generateSystemName } from './names.js';
 
 // The galaxy is a sparse infinite grid: each grid cell either has exactly one
 // system or none, decided by a per-cell density roll. Systems are generated
@@ -209,11 +210,12 @@ export function getSystem(baseSeedInt, systemId) {
     return null;
   }
   const pos = getSystemPosition(baseSeedInt, gx, gy);
+  const name = generateSystemName(baseSeedInt, systemId);
   const star = generateStar(baseSeedInt, systemId, isStartSystem);
   const planets = generatePlanets(baseSeedInt, systemId, star, isStartSystem);
   const hazard = rollHazard(baseSeedInt, systemId, isStartSystem);
   const wormholeTo = getWormholeDestination(baseSeedInt, systemId);
   return {
-    id: systemId, gx, gy, pos, isStartSystem, star, planets, hazard, wormholeTo,
+    id: systemId, gx, gy, pos, name, isStartSystem, star, planets, hazard, wormholeTo,
   };
 }

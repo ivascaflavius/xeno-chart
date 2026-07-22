@@ -1,7 +1,7 @@
 import { el } from '../components/dom.js';
 import { confirmModal } from '../components/modal.js';
 import { iconButton } from '../components/iconButton.js';
-import { SAVE_SLOT_COUNT, HULL_COLORS } from '../../data/constants.js';
+import { SAVE_SLOT_COUNT, HULL_COLORS, SHIP_CLASSES } from '../../data/constants.js';
 
 export function render(container, gs) {
   let difficulty = 'expedition';
@@ -14,12 +14,14 @@ export function render(container, gs) {
   }
   gs.presetSlot = null;
   let selectedHullColor = 'default';
+  let selectedShipClass = 'standard';
 
   const seedInput = el('input', { type: 'text', placeholder: 'Leave blank for random' });
-  const shipNameInput = el('input', { type: 'text', placeholder: 'Unnamed Vessel', maxlength: 30 });
+  const shipNameInput = el('input', { type: 'text', placeholder: 'Leave blank for a random name', maxlength: 30 });
   const diffWrap = el('div', { className: 'stack' });
   const slotWrap = el('div', { className: 'stack' });
   const hullWrap = el('div', { className: 'row' });
+  const classWrap = el('div', { className: 'stack' });
 
   function difficultyButton(key, label, desc) {
     return el('button', {
@@ -75,9 +77,28 @@ export function render(container, gs) {
     }
   }
 
+  function renderShipClasses() {
+    classWrap.innerHTML = '';
+    for (const cls of SHIP_CLASSES) {
+      classWrap.appendChild(el('button', {
+        className: `btn btn-block${selectedShipClass === cls.key ? ' btn-primary' : ''}`,
+        onClick: () => {
+          selectedShipClass = cls.key;
+          renderShipClasses();
+        },
+      }, [
+        el('div', {}, [
+          el('div', { text: cls.label }),
+          el('div', { className: 'subtitle', text: cls.description }),
+        ]),
+      ]));
+    }
+  }
+
   renderDifficulty();
   renderSlots();
   renderHullColors();
+  renderShipClasses();
 
   function launch() {
     gs.startNewExpedition({
@@ -85,6 +106,7 @@ export function render(container, gs) {
       difficulty,
       shipName: shipNameInput.value,
       hullColor: selectedHullColor,
+      shipClass: selectedShipClass,
       slot: selectedSlot,
     });
   }
@@ -106,6 +128,10 @@ export function render(container, gs) {
     el('div', { className: 'panel stack' }, [
       el('p', { className: 'subtitle', text: 'Hull color' }),
       hullWrap,
+    ]),
+    el('div', { className: 'panel stack' }, [
+      el('p', { className: 'subtitle', text: 'Ship class' }),
+      classWrap,
     ]),
     el('div', { className: 'panel stack field' }, [
       el('label', { text: 'Seed code (optional)' }),

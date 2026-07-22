@@ -1,6 +1,15 @@
 import { el } from '../components/dom.js';
 import { getSystem } from '../../procgen/galaxy.js';
+import { planetDesignation } from '../../procgen/names.js';
 import { iconButton } from '../components/iconButton.js';
+import { icon } from '../components/icons.js';
+
+function infoRow(iconName, text) {
+  return el('div', { className: 'row', style: 'gap:8px' }, [
+    el('span', { className: 'resource-icon', html: icon(iconName) }),
+    el('span', { text }),
+  ]);
+}
 
 export function render(container, gs) {
   const systemId = gs.selectedSystemId;
@@ -23,18 +32,20 @@ export function render(container, gs) {
     }));
   } else {
     const sys = getSystem(gs.baseSeedInt, systemId);
-    infoPanel.appendChild(el('p', {}, [`Star: ${sys.star.label}`]));
-    infoPanel.appendChild(el('p', {}, [`Planets: ${sys.planets.length}`]));
+    infoPanel.appendChild(el('p', { className: 'title', text: sys.name, style: 'font-size:1.1rem' }));
+    infoPanel.appendChild(el('p', { className: 'subtitle', text: `${sys.star.label} · ${sys.planets.length} planet${sys.planets.length === 1 ? '' : 's'}` }));
     if (sys.hazard) {
       infoPanel.appendChild(el('p', { className: 'subtitle', text: `⚠ ${sys.hazard.label}` }));
     }
     if (tier === 'close') {
       for (const planet of sys.planets) {
         const mineralList = Object.keys(planet.minerals).join(', ') || 'none';
-        const lifeText = planet.life ? ` — biosignature detected (${planet.life.speciesName})` : '';
+        const lifeText = planet.life
+          ? (gs.save.sampledPlanets[planet.id] ? ` — biosignature detected (${planet.life.speciesName})` : ' — unidentified biosignature detected')
+          : '';
         infoPanel.appendChild(el('p', {
           className: 'subtitle',
-          text: `${planet.label} — minerals: ${mineralList}${lifeText}`,
+          text: `${planetDesignation(sys.name, planet.index)} — minerals: ${mineralList}${lifeText}`,
         }));
       }
     }
@@ -42,10 +53,13 @@ export function render(container, gs) {
 
   const costPanel = el('div', { className: 'panel stack' }, [
     viaWormhole
-      ? el('p', { className: 'subtitle', text: 'Wormhole route — flat cost regardless of distance.' })
-      : el('p', {}, [`Distance: ${preview.distance.toFixed(1)} ly`]),
-    el('p', {}, [`Fuel cost: ${preview.cost.fuel.toFixed(1)}`]),
-    el('p', {}, [`Life-support draw: ${preview.cost.oxygen} oxygen, ${preview.cost.food} food`]),
+      ? el('div', { className: 'row', style: 'gap:8px' }, [
+        el('span', { className: 'resource-icon', html: icon('wormhole') }),
+        el('span', { className: 'subtitle', text: 'Wormhole route — flat cost regardless of distance.' }),
+      ])
+      : infoRow('currentSystem', `Distance: ${preview.distance.toFixed(1)} ly`),
+    infoRow('fuel', `Fuel cost: ${preview.cost.fuel.toFixed(1)}`),
+    infoRow('oxygen', `Life-support draw: ${preview.cost.oxygen} oxygen, ${preview.cost.food} food`),
     !preview.canAfford ? el('p', { className: 'banner banner-danger', text: 'Not enough fuel for this jump.' }) : null,
   ]);
 

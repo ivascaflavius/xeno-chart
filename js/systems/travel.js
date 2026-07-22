@@ -5,23 +5,30 @@ import {
   JUMP_FOOD_DRAW,
   WORMHOLE_FLAT_FUEL_COST,
   RELAXED_PENALTY,
+  SHIP_CLASSES,
 } from '../data/constants.js';
 import { getAmount, addAmount, updateLifeSupport } from './resources.js';
 import { runModules } from './modules.js';
 import { scanRangeMultiplier, jumpFuelMultiplier } from './hazards.js';
 
+/** The ship-class def for save.shipClass (§12, Phase 3), falling back to 'standard' for older saves. */
+function shipClassFor(save) {
+  return SHIP_CLASSES.find((c) => c.key === save.shipClass) || SHIP_CLASSES[0];
+}
+
 export function jumpCostMultiplier(save) {
-  return Math.pow(RELAXED_PENALTY.jumpCostMultiplier, save.degradedLevel || 0);
+  return Math.pow(RELAXED_PENALTY.jumpCostMultiplier, save.degradedLevel || 0) * shipClassFor(save).fuelCostMultiplier;
 }
 
 /**
  * save.sensorRange is the upgradeable ship stat (§6); this applies the
- * Relaxed-mode degrade penalty (§9) and a solar-flare hazard penalty (§10),
- * if the ship's *current* system has one, on top.
+ * Relaxed-mode degrade penalty (§9), a solar-flare hazard penalty (§10) if
+ * the ship's *current* system has one, and the ship class's sensor bonus
+ * (§12, Phase 3) on top.
  */
 export function effectiveSensorRange(save, currentHazard) {
   const base = save.sensorRange * Math.pow(RELAXED_PENALTY.sensorRangeMultiplier, save.degradedLevel || 0);
-  return base * scanRangeMultiplier(currentHazard);
+  return base * scanRangeMultiplier(currentHazard) * shipClassFor(save).sensorRangeMultiplier;
 }
 
 /** Simple linear-with-minimum jump cost formula (§5), plus an asteroid-field surcharge (§10) if the destination has one. */

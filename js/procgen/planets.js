@@ -1,6 +1,7 @@
 import { rngFor } from './prng.js';
-import { PLANET_CLASSES } from '../data/constants.js';
+import { PLANET_CLASSES, MOON_COUNT_RANGES } from '../data/constants.js';
 import { rollLife } from './life.js';
+import { zoneForIndex } from './habitability.js';
 
 const MINERAL_ROLL_RANGES = {
   ore: [20, 60],
@@ -8,13 +9,20 @@ const MINERAL_ROLL_RANGES = {
   water: [10, 40],
 };
 
-function generateOnePlanet(baseSeedInt, systemId, index, star, forceMineralBearing) {
+function generateOnePlanet(baseSeedInt, systemId, index, count, star, forceMineralBearing) {
   const rng = rngFor(baseSeedInt, systemId, 'planet', index);
-  let cls = forceMineralBearing
-    ? PLANET_CLASSES.filter((c) => c.minerals.length > 0)[
-        rng.int(0, PLANET_CLASSES.filter((c) => c.minerals.length > 0).length - 1)
-      ]
-    : rng.weightedPick(PLANET_CLASSES);
+
+  // A planet's class is restricted to whatever's eligible for its actual
+  // orbital zone (§6/§7 polish round 6) — molten/rocky/hot-Jupiter inward,
+  // water-bearing worlds in the temperate band, ice/ice-giants out in the
+  // cold — rather than picking from the whole class list regardless of
+  // where in the system it landed.
+  const zone = zoneForIndex(index, count, star.class);
+  let eligible = PLANET_CLASSES.filter((c) => c.zones.includes(zone));
+  if (forceMineralBearing) {
+    eligible = eligible.filter((c) => c.minerals.length > 0);
+  }
+  const cls = rng.weightedPick(eligible);
 
   const minerals = {};
   for (const mineral of cls.minerals) {
@@ -25,6 +33,15 @@ function generateOnePlanet(baseSeedInt, systemId, index, star, forceMineralBeari
   const planetId = `${systemId}:p${index}`;
   const sizeRoll = rng.float();
 
+  const moonRng = rngFor(baseSeedInt, systemId, 'planet', index, 'moons');
+  const [moonLo, moonHi] = MOON_COUNT_RANGES[cls.key] || [0, 1];
+  const moonCount = moonRng.int(moonLo, moonHi);
+
+  // A gas giant that landed in the inner zone reads as a "hot Jupiter" (§7
+  // polish) — migrated in close, too hot/tidally battered to keep a ring
+  // system, so it always renders without one (see portraits.js).
+  const hotJupiter = cls.key === 'gas-giant' && zone === 'inner';
+
   const planet = {
     id: planetId,
     index,
@@ -33,9 +50,11 @@ function generateOnePlanet(baseSeedInt, systemId, index, star, forceMineralBeari
     color: cls.color,
     minerals,
     sizeRoll,
+    moonCount,
+    hotJupiter,
   };
 
-  planet.life = rollLife(baseSeedInt, planetId, star, cls);
+  planet.life = rollLife(baseSeedInt, planetId, star, cls, zone === 'habitable');
   return planet;
 }
 
@@ -50,11 +69,11 @@ export function generatePlanets(baseSeedInt, systemId, star, isStartSystem) {
 
   const planets = [];
   for (let i = 0; i < count; i++) {
-    planets.push(generateOnePlanet(baseSeedInt, systemId, i, star, false));
+    planets.push(generateOnePlanet(baseSeedInt, systemId, i, count, star, false));
   }
 
   if (isStartSystem && !planets.some((p) => Object.keys(p.minerals).length > 0)) {
-    planets[0] = generateOnePlanet(baseSeedInt, systemId, 0, star, true);
+    planets[0] = generateOnePlanet(baseSeedInt, systemId, 0, count, star, true);
   }
 
   return planets;

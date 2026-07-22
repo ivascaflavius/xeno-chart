@@ -12,6 +12,7 @@ export function createEmptySave() {
     difficulty: 'expedition', // 'relaxed' | 'expedition'
     shipName: 'Unnamed Vessel',
     hullColor: 'default',
+    shipClass: 'standard',
     createdAt: 0,
     lastPlayedAt: 0,
     cycle: 0,
@@ -28,6 +29,8 @@ export function createEmptySave() {
     lifeSupportCountdown: null,
     degradedLevel: 0,
     gameOver: false,
+    // { key, cyclesLeft } | null — set by a hostile intelligent-life encounter (§3, Phase 3)
+    moduleDisabled: null,
     stats: {
       systemsVisited: [],
       lifeFound: 0,
@@ -40,6 +43,15 @@ export function createEmptySave() {
     mineralDepletion: {},
     // { x, y, range }[] — where past long-range scans were made, for the starmap's fog trail
     scanHistory: [],
+    // planetId -> { genesisMarkerId, speciesName, biochemistry, stage, techTier, systemId } —
+    // every life discovery made this expedition, for the Phase 3 lineage-web codex view.
+    // genesisMarkerId is only meaningful within this save's own galaxy (it's derived from
+    // baseSeedInt), so lineage is tracked per-expedition rather than globally.
+    lifeDiscoveries: {},
+    // planetId -> true — a biosignature is revealed by the close-range scan itself, but
+    // codex/achievement crediting (and any first-contact encounter) waits for a deliberate
+    // "take a sample" action, tracked here so it only fires once per planet.
+    sampledPlanets: {},
   };
 }
 

@@ -1,7 +1,7 @@
 import { el } from '../components/dom.js';
 import { progressBar } from '../components/progressBar.js';
 import { getModuleStatuses } from '../../systems/modules.js';
-import { RESOURCE_CAPS, HULL_COLORS } from '../../data/constants.js';
+import { RESOURCE_CAPS, HULL_COLORS, SHIP_CLASSES } from '../../data/constants.js';
 import { statusFor } from '../../systems/resources.js';
 import { icon } from '../components/icons.js';
 import { iconButton } from '../components/iconButton.js';
@@ -23,7 +23,7 @@ export function render(container, gs) {
   const moduleRows = moduleStatuses.map((m) => el('div', { className: 'panel row' }, [
     el('span', { className: `resource-icon status-${m.status}`, html: icon(MODULE_ICON[m.key]) }),
     el('div', { className: 'stack', style: 'flex:1' }, [
-      el('span', { text: m.label }),
+      el('span', { text: m.status === 'disabled' ? `${m.label} — malfunctioning (${m.disabledCyclesLeft} cycle${m.disabledCyclesLeft === 1 ? '' : 's'})` : m.label }),
       progressBar(m.amount, m.cap, m.status),
     ]),
   ]));
@@ -44,13 +44,14 @@ export function render(container, gs) {
   });
 
   const hullColor = HULL_COLORS.find((h) => h.key === save.hullColor) || HULL_COLORS[0];
+  const shipClass = SHIP_CLASSES.find((c) => c.key === save.shipClass) || SHIP_CLASSES[0];
   const shipPanel = el('div', { className: 'panel row' }, [
     el('span', {
       style: `display:inline-block;width:20px;height:20px;border-radius:50%;background:${hullColor.color};flex-shrink:0`,
     }),
     el('div', { className: 'stack' }, [
       el('span', { text: save.shipName }),
-      el('span', { className: 'subtitle', text: hullColor.label }),
+      el('span', { className: 'subtitle', text: `${hullColor.label} · ${shipClass.label}` }),
     ]),
   ]);
 

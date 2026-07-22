@@ -383,6 +383,7 @@ label {
 }
 
 .codex-entry {
+  position: relative;
   aspect-ratio: 1;
   border-radius: 8px;
   border: 1px solid var(--border-dim);
@@ -391,6 +392,37 @@ label {
   align-items: center;
   justify-content: center;
   padding: 6px;
+}
+
+.lineage-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.lineage-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.codex-entry-dim {
+  opacity: 0.5;
+  filter: grayscale(0.6);
+}
+
+.codex-entry-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #05170d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .codex-entry svg {
@@ -585,4 +617,146 @@ label {
 ::-webkit-scrollbar-thumb {
   background: var(--border-dim);
   border-radius: 4px;
+}
+
+/* module malfunction (§3, Phase 3 — hostile intelligent-life encounter) */
+.resource-icon.status-disabled { color: var(--danger); }
+.progress-fill.status-disabled {
+  background: repeating-linear-gradient(45deg, var(--danger), var(--danger) 6px, #2a1516 6px, #2a1516 12px);
+}
+
+/* nebula backgrounds (§15a, Phase 3) — purely decorative, never intercepts input */
+.nebula-layer {
+  pointer-events: none;
+}
+
+/* special-object marker/portrait animation (§15a, Phase 3) */
+.marker-pulsar-beams,
+.portrait-pulsar {
+  transform-box: view-box;
+  animation: special-object-spin 6s linear infinite;
+}
+
+.marker-magnetar-arcs,
+.portrait-magnetar {
+  transform-box: view-box;
+  animation: special-object-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes special-object-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes special-object-shimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.75; }
+}
+
+/* "feels alive" portrait/orbit animation (polish round 4) */
+.portrait-star-flicker {
+  animation: portrait-star-flicker 2.6s ease-in-out infinite;
+}
+
+@keyframes portrait-star-flicker {
+  0%, 100% { opacity: 1; }
+  42% { opacity: 0.82; }
+  48% { opacity: 1; }
+  60% { opacity: 0.9; }
+  75% { opacity: 1; }
+}
+
+.portrait-planet-spin,
+.orbit-spin {
+  transform-box: view-box;
+  animation: special-object-spin 30s linear infinite;
+}
+
+.portrait-planet-scroll {
+  animation-name: portrait-planet-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes portrait-planet-scroll {
+  to { transform: translateX(var(--scroll-dist, 0px)); }
+}
+
+/* main menu animated scene (§15b, Phase 3) — purely decorative background
+   layer; negative z-index keeps it behind the (position: static) menu
+   buttons regardless of DOM order, contained by .screen's own stacking
+   context (position: relative). */
+.screen-menu {
+  position: relative;
+}
+
+.menu-title-block {
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.menu-scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.menu-scene-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.menu-starfield-far,
+.menu-starfield-near {
+  transform-box: view-box;
+  will-change: transform;
+}
+
+.menu-starfield-far {
+  animation: menu-starfield-scroll 90s linear infinite;
+}
+
+.menu-starfield-near {
+  animation: menu-starfield-scroll 40s linear infinite;
+}
+
+@keyframes menu-starfield-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-400px); }
+}
+
+.menu-ship-bob {
+  animation: menu-ship-bob 3.2s ease-in-out infinite;
+}
+
+@keyframes menu-ship-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.menu-ship-exhaust {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: menu-ship-exhaust-flicker 0.4s steps(2) infinite;
+}
+
+@keyframes menu-ship-exhaust-flicker {
+  0% { opacity: 0.5; transform: scaleX(0.85); }
+  50% { opacity: 1; transform: scaleX(1.1); }
+  100% { opacity: 0.6; transform: scaleX(0.95); }
+}
+
+.menu-planet-ring-front {
+  transform-box: fill-box;
+  animation: menu-ring-shimmer 4s ease-in-out infinite;
+}
+
+@keyframes menu-ring-shimmer {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.6; }
 }

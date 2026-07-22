@@ -1,12 +1,14 @@
 import { el } from '../components/dom.js';
 import { iconButton } from '../components/iconButton.js';
+import { mainMenuSceneHtml } from '../../render/mainMenuScene.js';
 
 export function render(container, gs) {
   const hasSave = gs.hasAnySave();
   const commanderName = gs.global.commanderName?.trim();
 
-  container.appendChild(el('div', { className: 'screen' }, [
-    el('div', { className: 'stack' }, [
+  container.appendChild(el('div', { className: 'screen screen-menu' }, [
+    el('div', { className: 'menu-scene', html: mainMenuSceneHtml() }),
+    el('div', { className: 'stack menu-title-block' }, [
       el('p', { className: 'title', text: 'Xeno-Chart' }),
       el('p', { className: 'subtitle', text: 'Scan the dark. Chart the unknown.' }),
       commanderName ? el('p', { className: 'subtitle', text: `Welcome back, ${commanderName}.` }) : null,
