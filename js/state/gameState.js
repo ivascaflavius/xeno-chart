@@ -32,7 +32,7 @@ import * as saveManager from '../save/saveManager.js';
 import { enqueueCelebration } from '../ui/components/celebration.js';
 import { hideTooltip } from '../ui/components/tooltip.js';
 import {
-  playStinger, playWarning, configure as configureAudio, startAmbient,
+  playStinger, playWarning, configure as configureAudio,
 } from '../audio/audioManager.js';
 import {
   vibrateForTier, vibrateWarning, configure as configureHaptics,
@@ -137,7 +137,6 @@ class GameState {
     }
     this.screen = screenName;
     Object.assign(this, opts);
-    if (screenName === 'STARMAP') startAmbient();
     this.render();
   }
 
@@ -390,19 +389,18 @@ class GameState {
   }
 
   /**
-   * Harvests as much of one mineral as the planet has left and the ship's
-   * buffer has room for. If the buffer caps out before the planet is
-   * drained, this keeps advancing cycles (letting modules consume from the
-   * buffer) and retrying, stopping only once the planet is fully depleted or
-   * a cycle passes with no change in available room — i.e. genuinely stuck
-   * (e.g. hydroponics can't free up the water buffer without oxygen to pair
-   * it with). That leaves the rest for a later visit rather than requiring
-   * the player to mash the button to slowly drain a capped buffer.
+   * Core harvest loop for a single mineral on a planet — pulls as much as the
+   * planet has left and the ship's buffer has room for. If the buffer caps
+   * out before the planet is drained, this keeps advancing cycles (letting
+   * modules consume from the buffer) and retrying, stopping only once the
+   * planet is fully depleted or a cycle passes with no change in available
+   * room — i.e. genuinely stuck (e.g. hydroponics can't free up the water
+   * buffer without oxygen to pair it with). That leaves the rest for a later
+   * visit rather than requiring the player to mash the button to slowly
+   * drain a capped buffer. Mutates save in place; does not persist, flash, or
+   * refresh — callers (harvest/harvestAll) do that once, after everything.
    */
-  harvest(planetId, mineralKey) {
-    const [systemId] = planetId.split(':p');
-    if (systemId !== this.save.position.systemId) return { ok: false };
-
+  harvestOneMineral(planetId, mineralKey) {
     const cycleBefore = this.save.cycle;
     let totalHarvested = 0;
     let isGameOver = false;
@@ -435,11 +433,20 @@ class GameState {
       if (isGameOver) break;
     }
 
-    const cyclesElapsed = this.save.cycle - cycleBefore;
+    return { totalHarvested, cyclesElapsed: this.save.cycle - cycleBefore, isGameOver };
+  }
+
+  harvest(planetId, mineralKey) {
+    const [systemId] = planetId.split(':p');
+    if (systemId !== this.save.position.systemId) return { ok: false };
+
+    const { totalHarvested, cyclesElapsed, isGameOver } = this.harvestOneMineral(planetId, mineralKey);
+
     if (totalHarvested > 0) {
-      this.flashMessage = cyclesElapsed > 1
-        ? `Harvested ${Math.round(totalHarvested)} ${mineralKey}. That took ${cyclesElapsed} cycles to fit it all in — modules kept consuming from the buffer as it filled, so the stored amount may be lower than what you took.`
-        : `Harvested ${Math.round(totalHarvested)} ${mineralKey}.`;
+      enqueueCelebration('minor', {
+        title: 'Harvested',
+        body: `${Math.round(totalHarvested)} ${mineralKey}${cyclesElapsed > 1 ? ` · ${cyclesElapsed} cycles` : ''}`,
+      });
       this.unlockAchievement('first-harvest');
     }
 
@@ -450,6 +457,48 @@ class GameState {
       this.refresh();
     }
     return { ok: totalHarvested > 0, amount: totalHarvested };
+  }
+
+  /**
+   * Harvests every mineral type present on a planet in one action — same
+   * per-mineral loop as harvest(), just run once per mineral key in turn, so
+   * a multi-mineral planet doesn't need a separate button press per mineral.
+   * Stops early if a life-support failure hits mid-harvest.
+   */
+  harvestAll(planetId) {
+    const [systemId] = planetId.split(':p');
+    if (systemId !== this.save.position.systemId) return { ok: false };
+
+    const sys = this.currentSystem();
+    const planet = sys.planets.find((p) => p.id === planetId);
+    if (!planet) return { ok: false };
+
+    const totals = {};
+    let isGameOver = false;
+
+    for (const mineralKey of Object.keys(planet.minerals)) {
+      if (isGameOver) break;
+      const result = this.harvestOneMineral(planetId, mineralKey);
+      if (result.totalHarvested > 0) totals[mineralKey] = result.totalHarvested;
+      isGameOver = result.isGameOver;
+    }
+
+    const harvestedAny = Object.keys(totals).length > 0;
+    if (harvestedAny) {
+      enqueueCelebration('minor', {
+        title: 'Harvested',
+        body: Object.entries(totals).map(([k, v]) => `${Math.round(v)} ${k}`).join(', '),
+      });
+      this.unlockAchievement('first-harvest');
+    }
+
+    this.persistSave();
+    if (isGameOver) {
+      this.show('GAME_OVER');
+    } else {
+      this.refresh();
+    }
+    return { ok: harvestedAny };
   }
 
   previewJump(targetSystemId) {

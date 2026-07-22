@@ -30,9 +30,6 @@ export function render(container, gs) {
         onClick: () => gs.show('SLOT_PICKER'),
       }),
       iconButton({
-        iconName: 'codex', label: 'Codex', className: 'btn btn-block', onClick: () => gs.show('CODEX'),
-      }),
-      iconButton({
         iconName: 'help', label: 'How to fly', className: 'btn btn-block', onClick: () => gs.show('HOW_TO_FLY'),
       }),
       iconButton({

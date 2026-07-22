@@ -76,7 +76,7 @@ export function systemOrbitHtml(sys) {
   }
 
   return `
-    <svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:280px; display:block; margin:0 auto;">
+    <svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:190px; display:block; margin:0 auto;">
       ${habitableZone}
       ${rings.join('')}
       <circle cx="${center}" cy="${center}" r="20" fill="${sys.star.color}" opacity="0.25"/>

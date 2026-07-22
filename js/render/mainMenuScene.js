@@ -41,13 +41,13 @@ export function mainMenuSceneHtml() {
       ${starField('menu-starfield-far', 40, [0.4, 1], 'far')}
       ${starField('menu-starfield-near', 20, [0.8, 1.8], 'near')}
 
-      <g class="menu-planet" transform="translate(300,80)">
+      <g class="menu-planet" transform="translate(225,85)">
         <ellipse class="menu-planet-ring" cx="0" cy="0" rx="40" ry="11" fill="none" stroke="#d9d9e8" stroke-width="3" transform="rotate(-20)"/>
         <circle class="menu-planet-body" cx="0" cy="0" r="24" fill="#e8a34c"/>
         <ellipse class="menu-planet-ring-front" cx="0" cy="0" rx="40" ry="11" fill="none" stroke="#fff" stroke-width="1" opacity="0.4" transform="rotate(-20)"/>
       </g>
 
-      <g transform="translate(150,190)">
+      <g transform="translate(170,105)">
         <g class="menu-ship-bob">
           <path class="menu-ship-exhaust" d="M -4 6 Q -14 0 -4 -6 Q -9 0 -4 6 Z" fill="#e8a34c"/>
           <path class="menu-ship-body" d="M 8 0 L -8 8 L -3 0 L -8 -8 Z" fill="#c7cbd6"/>

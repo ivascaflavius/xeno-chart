@@ -53,15 +53,15 @@ export function render(container, gs) {
     gs.closeRangeScan(sys.id);
   }
 
-  const starIcon = el('div', { style: 'width:64px;height:64px;flex-shrink:0', html: starPortrait(sys.id, sys.star) });
+  const starIcon = el('div', { style: 'width:52px;height:52px;flex-shrink:0', html: starPortrait(sys.id, sys.star) });
   attachHoverTooltip(starIcon, () => `<strong>${sys.name}</strong><br>${sys.star.label} · ${sys.planets.length} planet${sys.planets.length === 1 ? '' : 's'}`);
 
   const stats = starStats(sys.star);
   const statsText = `${stats.temperatureK !== null ? `${stats.temperatureK.toLocaleString()} K` : 'N/A'} · ${stats.radiusSolar} R☉ · ${stats.massSolar} M☉`;
-  const starPanel = el('div', { className: 'panel row' }, [
+  const starPanel = el('div', { className: 'panel row panel-compact' }, [
     starIcon,
-    el('div', { className: 'stack' }, [
-      el('p', { className: 'title', text: sys.name }),
+    el('div', { className: 'stack', style: 'gap:2px' }, [
+      el('p', { className: 'title', text: sys.name, style: 'font-size:1.25rem' }),
       el('p', { className: 'subtitle', text: `${sys.star.label} · ${sys.planets.length} planet${sys.planets.length === 1 ? '' : 's'} detected` }),
       el('p', { className: 'subtitle', text: statsText }),
     ]),
@@ -72,18 +72,19 @@ export function render(container, gs) {
     : null;
 
   const wormholePanel = (sys.wormholeTo && scanned)
-    ? el('div', { className: 'panel stack' }, [
-      el('p', { className: 'subtitle', text: 'A wormhole connects this system to a distant one.' }),
+    ? el('div', { className: 'panel row panel-compact' }, [
+      el('span', { className: 'icon-chip', html: icon('wormhole', 16) }),
+      el('span', { text: 'A wormhole connects this system to a distant one.', style: 'flex:1' }),
       iconButton({
         iconName: 'wormhole',
-        label: 'Plan Wormhole Jump',
+        label: 'Jump',
         className: 'btn btn-primary',
         onClick: () => gs.show('JUMP_PLANNING', { selectedSystemId: sys.wormholeTo, viaWormhole: true }),
       }),
     ])
     : null;
 
-  const grid = el('div', { className: 'codex-grid' });
+  const grid = el('div', { className: 'planet-grid' });
   for (const planet of sys.planets) {
     const dimmed = scanned && !planetHasMinerals(planet);
     const entry = el('div', {
@@ -105,17 +106,17 @@ export function render(container, gs) {
   }
 
   const orbitPanel = scanned
-    ? el('div', { className: 'panel stack' }, [
-      el('p', { className: 'subtitle', text: 'Orbits' }),
+    ? el('div', { className: 'panel stack panel-compact', style: 'align-items:center' }, [
       el('div', { html: systemOrbitHtml(sys) }),
     ])
     : null;
 
   const scanRow = !scanned
-    ? el('div', { className: 'panel stack' }, [
-      el('p', {
+    ? el('div', { className: 'panel row panel-compact' }, [
+      el('span', {
         className: 'subtitle',
-        text: 'Planets are unscanned. Close-range scan to reveal full detail, minerals, and biosignatures.',
+        text: 'Planets are unscanned — close-range scan for full detail.',
+        style: 'flex:1',
       }),
       iconButton({
         iconName: 'closeScan',

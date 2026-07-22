@@ -1,10 +1,10 @@
 // All audio is synthesized via the Web Audio API — no external audio files
-// (§15, §21). A soft two-oscillator drone for the ambient loop, short
-// envelope-shaped tones for stingers.
+// (§15, §21). Short envelope-shaped tones for stingers/warnings only — no
+// continuous ambient loop, so nothing hums away while browsing menus; sound
+// only ever plays in direct response to a player action.
 
 let ctx = null;
 let masterGain = null;
-let ambientNodes = null;
 let settings = { enabled: true, volume: 0.5 };
 
 function ensureContext() {
@@ -24,52 +24,6 @@ export function configure(newSettings) {
   if (masterGain && ctx) {
     masterGain.gain.setTargetAtTime(settings.enabled ? settings.volume : 0, ctx.currentTime, 0.05);
   }
-}
-
-/** Starts the ambient drone if not already running. Safe to call repeatedly. Must be called from within a user-gesture handler (button click) for browsers to allow audio. */
-export function startAmbient() {
-  const audioCtx = ensureContext();
-  if (!audioCtx) return;
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  if (ambientNodes) return;
-
-  const osc1 = audioCtx.createOscillator();
-  osc1.type = 'sine';
-  osc1.frequency.value = 65;
-  const osc2 = audioCtx.createOscillator();
-  osc2.type = 'sine';
-  osc2.frequency.value = 97.5;
-
-  const ambientGain = audioCtx.createGain();
-  ambientGain.gain.value = 0.15;
-
-  const lfo = audioCtx.createOscillator();
-  lfo.frequency.value = 0.07;
-  const lfoGain = audioCtx.createGain();
-  lfoGain.gain.value = 0.05;
-  lfo.connect(lfoGain);
-  lfoGain.connect(ambientGain.gain);
-
-  osc1.connect(ambientGain);
-  osc2.connect(ambientGain);
-  ambientGain.connect(masterGain);
-
-  osc1.start();
-  osc2.start();
-  lfo.start();
-
-  ambientNodes = {
-    osc1, osc2, lfo,
-  };
-}
-
-export function stopAmbient() {
-  if (!ambientNodes) return;
-  const { osc1, osc2, lfo } = ambientNodes;
-  osc1.stop();
-  osc2.stop();
-  lfo.stop();
-  ambientNodes = null;
 }
 
 function playToneAt(startTime, freq, duration, peakGain = 0.3) {

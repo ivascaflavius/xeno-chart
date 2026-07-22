@@ -180,7 +180,7 @@ Guiding rules for how these pieces talk to each other:
 Build these as distinct states in one finite-state-machine (see the
 responsive-webapp conventions in §8). Use real `<button>` elements throughout.
 
-1. **Main menu** — New expedition / Continue / Codex / How to fly / Settings
+1. **Main menu** — New expedition / Continue / How to fly / Settings
 2. **New expedition setup** — choose difficulty (Relaxed / Expedition), optionally
    enter a seed code, optionally pick a save slot
 3. **Starmap** (primary hub) — pan/zoom view, fog-of-war tiers (§6), fuel-range
@@ -193,7 +193,11 @@ responsive-webapp conventions in §8). Use real `<button>` elements throughout.
 7. **Ship systems dashboard** — module status rows with progress bars (§5),
    life-support warning banner when critical
 8. **Codex** — tabs for stellar / planetary / biological, grid of discovered +
-   locked (silhouette) entries, achievements list
+   locked (silhouette) entries, achievements list. Scoped to an active expedition:
+   reachable from the starmap's action row (§6, in-run only), not from the main
+   menu — the codex is about the galaxy you're currently charting, so it shouldn't
+   be browsable before you've started (or outside of) a run. Progress itself is
+   still stored globally (§11), not per-slot, so it persists across expeditions.
 9. **How to fly** — static help/reference screen (see §9), reachable from main
    menu and in-run pause menu
 10. **Settings** — commander name (§12a), audio on/off, audio volume, haptics

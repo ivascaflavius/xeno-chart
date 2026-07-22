@@ -29,6 +29,17 @@ const PATHS = {
   wormhole: '<ellipse cx="12" cy="12" rx="9" ry="5" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="12" rx="4.5" ry="2.5" fill="currentColor" opacity="0.7"/>',
   sample: '<path d="M9 2v6.5L4.5 18a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 2h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.5 14h11" stroke="currentColor" stroke-width="1.5"/>',
   check: '<path d="M4 12.5 9.5 18 20 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  // Mineral/buffer icons (ship cargo bar + planet resource bar).
+  ore: '<path d="M12 2 21 9 16.5 22 7.5 22 3 9Z" fill="currentColor"/>',
+  ice: '<path d="M12 2v20M4.5 6.5l15 11M19.5 6.5l-15 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  water: '<path d="M12 2c4.5 5.5 7.5 9.3 7.5 13A7.5 7.5 0 1 1 4.5 15C4.5 11.3 7.5 7.5 12 2z" fill="currentColor"/>',
+  hydrogen: '<circle cx="7.5" cy="12" r="3.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16.5" cy="12" r="3.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.4 12h3.2" stroke="currentColor" stroke-width="2"/>',
+  // Cargo container (ship hold) and ringed-planet glyph (mirrors favicon.svg's brand mark) — used as
+  // source/destination markers so the resource-flow arrow between them reads at a glance.
+  cargo: '<path d="M3 8 12 3l9 5v9l-9 5-9-5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 5 9-5M12 13v9" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  planet: '<circle cx="12" cy="13" r="6" fill="currentColor"/><ellipse cx="12" cy="13" rx="10" ry="3" fill="none" stroke="currentColor" stroke-width="1.8" transform="rotate(-20 12 13)"/>',
+  dna: '<path d="M8 2c6 4 2 8 8 12M8 22c6-4 2-8 8-12" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/><path d="M9.3 5.3h5.4M8 9.3h8M8 14.7h8M9.3 18.7h5.4" stroke="currentColor" stroke-width="1.2"/>',
+  arrowUp: '<path d="M12 20V5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
 };
 
 export function icon(name, size = 18) {

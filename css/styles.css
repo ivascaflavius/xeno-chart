@@ -56,8 +56,8 @@ a {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  gap: 16px;
+  padding: 14px 16px;
+  gap: 10px;
   overflow-y: auto;
   width: 100%;
   max-width: 680px;
@@ -71,14 +71,14 @@ a {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .row {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -132,11 +132,75 @@ a {
   background: var(--bg-panel);
   border: 1px solid var(--border-dim);
   border-radius: 10px;
-  padding: 16px;
+  padding: 12px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 2px 8px rgba(0, 0, 0, 0.28);
 }
 
 .panel-raised {
   background: var(--bg-panel-raised);
+}
+
+.panel-compact {
+  padding: 8px 10px;
+}
+
+/* small square icon backing — gives header/section icons (cargo, planet, dna…) a
+   designed "chip" look instead of a bare glyph floating in the row */
+.icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-dim);
+  flex-shrink: 0;
+}
+
+/* cargo / mineral icon row (ui/components/cargoBar.js) — one column per resource, all sharing a row */
+.cargo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cargo-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* a trailing action button (e.g. Harvest) shares the row with the resource
+   columns above instead of stretching to fill it or wrapping its label */
+.cargo-row > .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cargo-item .progress-track {
+  width: 100%;
+}
+
+.cargo-amount {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.progress-track.thin {
+  height: 6px;
+}
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-faint);
+  font-size: 0.75rem;
 }
 
 .btn {
@@ -150,14 +214,34 @@ a {
   font-size: 1rem;
   cursor: pointer;
   touch-action: manipulation;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
 }
 
 .btn:hover {
   border-color: var(--accent);
+  background: #1a2130;
+}
+
+.btn:hover .btn-icon {
+  color: var(--accent);
 }
 
 .btn:active {
   transform: translateY(1px);
+  filter: brightness(0.94);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-primary:hover {
+  background: #326972;
+}
+
+.btn-danger:hover {
+  background: #4a2626;
 }
 
 .icon-btn {
@@ -225,6 +309,14 @@ a {
 
 .btn-block {
   width: 100%;
+}
+
+/* A lone action button inside a vertical .stack would otherwise stretch to
+   fill the column's cross-axis (flex default align-items: stretch) even
+   without .btn-block — this keeps it sized to its label like buttons
+   elsewhere in a .row, unless .btn-block explicitly asks for full width. */
+.stack > .btn:not(.btn-block) {
+  align-self: flex-start;
 }
 
 input[type="text"], select {
@@ -380,6 +472,15 @@ label {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
   gap: 10px;
+}
+
+/* System View's planet grid — same tile styling (.codex-entry) as the Codex,
+   just smaller/tighter so a full system's planets fit without pushing the
+   orbit diagram below the fold on mobile. */
+.planet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 8px;
 }
 
 .codex-entry {
