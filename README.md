@@ -7,7 +7,7 @@ economy that makes every jump a real decision.
 Xeno-Chart is a single-player, browser-based space exploration game. It's a
 self-contained HTML5/CSS3/ES6+ web app — vanilla JS, no build step, no backend.
 
-Live build: _not yet deployed_
+Live build: [ivascaflavius.github.io/xeno-chart](https://ivascaflavius.github.io/xeno-chart/)
 
 ## Running locally
 
