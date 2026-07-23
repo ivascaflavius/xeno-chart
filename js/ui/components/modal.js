@@ -10,8 +10,9 @@ export function showModal({ title, body, buttons = [] }) {
   const btnRow = el('div', { className: 'row' }, buttons.map((btnDef) => el('button', {
     className: btnDef.className || 'btn',
     text: btnDef.label,
+    disabled: btnDef.disabled,
     onClick: () => {
-      btnDef.onClick?.();
+      btnDef.onClick?.(close);
       if (btnDef.closeOnClick !== false) close();
     },
   })));

@@ -45,7 +45,6 @@ import * as mainMenu from '../ui/screens/mainMenu.js';
 import * as newExpedition from '../ui/screens/newExpedition.js';
 import * as slotPicker from '../ui/screens/slotPicker.js';
 import * as starmapScreen from '../ui/screens/starmapScreen.js';
-import * as jumpPlanning from '../ui/screens/jumpPlanning.js';
 import * as systemView from '../ui/screens/systemView.js';
 import * as scanDetail from '../ui/screens/scanDetail.js';
 import * as shipSystems from '../ui/screens/shipSystems.js';
@@ -62,7 +61,6 @@ const SCREENS = {
   NEW_EXPEDITION: newExpedition,
   SLOT_PICKER: slotPicker,
   STARMAP: starmapScreen,
-  JUMP_PLANNING: jumpPlanning,
   SYSTEM_VIEW: systemView,
   SCAN_DETAIL: scanDetail,
   SHIP_SYSTEMS: shipSystems,
@@ -111,7 +109,6 @@ class GameState {
     this.currentSlot = 0;
     this.baseSeedInt = null;
     this.global = saveManager.loadGlobal();
-    this.selectedSystemId = null;
     this.selectedPlanetId = null;
     this.viaWormhole = false;
     this.flashMessage = null;
@@ -658,18 +655,26 @@ class GameState {
     const result = performJump(this.save, cost, distance, targetSystemId, this.baseSeedInt);
     if (!result.ok) return result;
     playJumpCue();
+    const destinationName = generateSystemName(this.baseSeedInt, targetSystemId);
     this.addJournalEntry({
       type: 'jump',
-      text: `${viaWormhole ? 'Wormhole-jumped' : 'Jumped'} to ${generateSystemName(this.baseSeedInt, targetSystemId)}`,
+      text: `${viaWormhole ? 'Wormhole-jumped' : 'Jumped'} to ${destinationName}`,
       iconName: viaWormhole ? 'wormhole' : 'rocket',
       systemId: targetSystemId,
     });
-    this.selectedSystemId = null;
     this.viaWormhole = false;
     if (!this.save.gameOver) this.maybeEndInDeadlock();
     this.persistSave();
-    this.show(this.save.gameOver ? 'GAME_OVER' : 'STARMAP');
-    return result;
+    if (this.save.gameOver) {
+      this.show('GAME_OVER');
+      return result;
+    }
+    // No screen transition here — the caller (the jump-planning pop-up) is
+    // responsible for closing itself and kicking off the travel animation on
+    // the Galactic View via `gs.show('STARMAP', { pendingJumpAnimation })`.
+    return {
+      ...result, fromPos: currentPos, toPos: target.pos, destinationName,
+    };
   }
 
   sendDistressBeacon() {

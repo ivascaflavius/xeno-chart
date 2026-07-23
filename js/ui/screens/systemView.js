@@ -11,6 +11,7 @@ import { systemOrbitHtml } from '../../render/orbitDiagram.js';
 import { starStats } from '../../procgen/stats.js';
 import { screenHeader } from '../components/screenHeader.js';
 import { statusBanners } from '../components/statusBanners.js';
+import { openJumpModal } from './jumpPlanning.js';
 
 function planetHasMinerals(planet) {
   return planet.minerals && Object.keys(planet.minerals).length > 0;
@@ -81,7 +82,7 @@ export function render(container, gs) {
         iconName: 'wormhole',
         label: 'Jump',
         className: 'btn btn-primary',
-        onClick: () => gs.show('JUMP_PLANNING', { selectedSystemId: sys.wormholeTo, viaWormhole: true }),
+        onClick: () => openJumpModal(gs, sys.wormholeTo, { viaWormhole: true }),
       }),
     ])
     : null;

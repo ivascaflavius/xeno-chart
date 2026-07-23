@@ -7,6 +7,8 @@ import { icon } from '../components/icons.js';
 import { iconButton } from '../components/iconButton.js';
 import { statusBanners } from '../components/statusBanners.js';
 import { cargoBar } from '../components/cargoBar.js';
+import { openJumpModal } from './jumpPlanning.js';
+import { enqueueCelebration } from '../components/celebration.js';
 
 export function render(container, gs) {
   const save = gs.save;
@@ -40,7 +42,7 @@ export function render(container, gs) {
     if (systemId === save.position.systemId) {
       gs.show('SYSTEM_VIEW');
     } else {
-      gs.show('JUMP_PLANNING', { selectedSystemId: systemId });
+      openJumpModal(gs, systemId);
     }
   });
 
@@ -72,4 +74,19 @@ export function render(container, gs) {
   ]));
 
   starmap.update({ baseSeedInt: gs.baseSeedInt, save });
+
+  // A jump just committed (see jumpPlanning.js's openJumpModal) — the save
+  // already reflects arrival, but the camera hasn't "traveled" there yet.
+  // Play that beat now that the map is actually mounted, then confirm arrival
+  // once it's done, rather than the destination just silently appearing.
+  if (gs.pendingJumpAnimation) {
+    const { fromPos, toPos, destinationName } = gs.pendingJumpAnimation;
+    gs.pendingJumpAnimation = null;
+    starmap.animateJump(fromPos, toPos, 1200, () => {
+      enqueueCelebration('minor', {
+        title: 'Arrived',
+        body: `${destinationName} — 1 cycle elapsed`,
+      });
+    });
+  }
 }

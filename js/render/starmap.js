@@ -12,8 +12,11 @@ function hullColorHex(hullColorKey) {
 const NS = 'http://www.w3.org/2000/svg';
 const VIEW_SIZE = 600;
 const TAP_TOLERANCE_PX = 18; // screen pixels, independent of zoom level
-const GLOW_COLOR = '#7f9bd8';
-const REVEAL_CLIP_ID = 'starmap-reveal-clip';
+const FOG_GRADIENT_ID = 'starmap-fog-falloff';
+const SENSOR_MASK_ID = 'starmap-sensor-mask';
+const SCANNED_MASK_ID = 'starmap-scanned-mask';
+const DETECTED_WASH_COLOR = '#7c8494';
+const SCANNED_BASE_TINT = '#3f5a8c';
 
 function svgEl(tag, attrs = {}) {
   const el = document.createElementNS(NS, tag);
@@ -25,14 +28,8 @@ function clampScale(s) {
   return Math.max(4, Math.min(40, s));
 }
 
-/** Soft-edged glow (concentric fading rings) instead of one flat-opacity disc — reads as light spilling into the dark rather than a solid gray/blue circle. */
-function softGlow(group, cx, cy, r, color) {
-  if (r <= 0) return;
-  for (const [mult, opacity] of [[1, 0.05], [0.72, 0.08], [0.46, 0.12]]) {
-    group.appendChild(svgEl('circle', {
-      cx: cx.toFixed(1), cy: cy.toFixed(1), r: (r * mult).toFixed(1), fill: color, opacity, stroke: 'none',
-    }));
-  }
+function easeInOutQuad(t) {
+  return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2;
 }
 
 /**
@@ -150,30 +147,43 @@ export function createStarmap(onSelectSystem) {
 
     const ringCenter = lyToPx(currentPos);
 
-    // Fog of war: everything below is either "known space" (inside one of
-    // these circles — the ship's current sensor reach, plus every past
-    // long-range scan) or "the unknown" (pure dark void, no nebula/starlight
-    // detail rendered at all). A <clipPath> unioning all the reveal circles
-    // gates the decorative layers below so gas clouds and background stars
-    // only ever show where the player has actually looked.
-    const revealCircles = [{ cx: ringCenter.x, cy: ringCenter.y, r: Math.max(0, sensorRange * view.scale) }];
+    // Fog of war, three tiers (§6): pure dark for the unexplored, a flat
+    // neutral-gray wash for "detected" (inside the ship's *current* live
+    // sensor reach but never actually long-range scanned — recalculated
+    // from position every redraw, so it disappears again once the ship
+    // moves away), and the full colorful nebula/starfield treatment for
+    // "scanned" (every past long-range scan, permanent regardless of where
+    // the ship is now). Both reveals use a soft-edged <mask> (a radial
+    // gradient fading to transparent, not a hard-edged <clipPath>) so
+    // overlapping scan circles blend into an organic-looking patch of light
+    // instead of a grid of crisp, visibly-intersecting circle arcs.
+    const defs = svgEl('defs');
+    const fogGradient = svgEl('radialGradient', { id: FOG_GRADIENT_ID });
+    fogGradient.appendChild(svgEl('stop', { offset: '55%', 'stop-color': '#fff', 'stop-opacity': 1 }));
+    fogGradient.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#fff', 'stop-opacity': 0 }));
+    defs.appendChild(fogGradient);
+
+    const sensorMask = svgEl('mask', { id: SENSOR_MASK_ID });
+    sensorMask.appendChild(svgEl('circle', {
+      cx: ringCenter.x.toFixed(1), cy: ringCenter.y.toFixed(1), r: Math.max(0, sensorRange * view.scale).toFixed(1), fill: `url(#${FOG_GRADIENT_ID})`,
+    }));
+    defs.appendChild(sensorMask);
+
+    const scannedMask = svgEl('mask', { id: SCANNED_MASK_ID });
     for (const scan of save.scanHistory || []) {
       const p = lyToPx(scan);
-      revealCircles.push({ cx: p.x, cy: p.y, r: Math.max(0, scan.range * view.scale) });
+      scannedMask.appendChild(svgEl('circle', {
+        cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: Math.max(0, scan.range * view.scale).toFixed(1), fill: `url(#${FOG_GRADIENT_ID})`,
+      }));
     }
-    const defs = svgEl('defs');
-    const clipPath = svgEl('clipPath', { id: REVEAL_CLIP_ID });
-    for (const c of revealCircles) {
-      clipPath.appendChild(svgEl('circle', { cx: c.cx.toFixed(1), cy: c.cy.toFixed(1), r: c.r.toFixed(1) }));
-    }
-    defs.appendChild(clipPath);
+    defs.appendChild(scannedMask);
     viewport.appendChild(defs);
 
-    // Faint, unclipped background starfield — decorative depth cue visible
+    // Faint, unmasked background starfield — decorative depth cue visible
     // everywhere (even unexplored space still has distant background stars
-    // in it), distinct from actual system markers. A second, brighter pass
-    // further down is clipped to known space, so explored regions visibly
-    // "light up" relative to the surrounding dark.
+    // in it), distinct from actual system markers. Brighter passes further
+    // down are masked to known space, so explored regions visibly "light
+    // up" relative to the surrounding dark.
     const bgStars = getBackgroundStarsInBox(baseSeedInt, minX, maxX, minY, maxY);
     const dimStarGroup = svgEl('g', { class: 'bg-stars-dim' });
     viewport.appendChild(dimStarGroup);
@@ -184,48 +194,45 @@ export function createStarmap(onSelectSystem) {
       }));
     }
 
-    // Nebula backgrounds (§15a) — only visible in known space (see clip
-    // above), so a region's true color is something you discover by scanning
-    // it rather than seeing through the fog of war.
-    const nebulaGroup = svgEl('g', { class: 'nebula-layer', 'clip-path': `url(#${REVEAL_CLIP_ID})` });
-    viewport.appendChild(nebulaGroup);
+    // Tier 2 — "detected": a flat, desaturated wash, nothing colorful. Reads
+    // as "there's something out there, hazily" rather than an actual charted
+    // region — that distinction (and not just a color choice) is the whole
+    // point, since it's what makes the tier-3 reveal below feel earned.
+    const detectedGroup = svgEl('g', { mask: `url(#${SENSOR_MASK_ID})` });
+    viewport.appendChild(detectedGroup);
+    detectedGroup.appendChild(svgEl('rect', {
+      x: 0, y: 0, width: VIEW_SIZE, height: VIEW_SIZE, fill: DETECTED_WASH_COLOR, opacity: 0.16,
+    }));
+
+    // Tier 3 — "scanned": a permanent group, masked to every past long-range
+    // scan regardless of current position. A faint uniform base tint first
+    // (so even a region that happened not to roll a nebula blob still reads
+    // as "lit up" rather than flat black-with-dots), then the nebula blobs
+    // themselves (§15a) layered on top, then a denser/brighter starfield.
+    const scannedGroup = svgEl('g', { mask: `url(#${SCANNED_MASK_ID})` });
+    viewport.appendChild(scannedGroup);
+    scannedGroup.appendChild(svgEl('rect', {
+      x: 0, y: 0, width: VIEW_SIZE, height: VIEW_SIZE, fill: SCANNED_BASE_TINT, opacity: 0.1,
+    }));
+    const nebulaGroup = svgEl('g', { class: 'nebula-layer' });
+    scannedGroup.appendChild(nebulaGroup);
     for (const blob of getNebulaBlobsInBox(baseSeedInt, minX, maxX, minY, maxY)) {
       const bp = lyToPx(blob);
       const br = blob.radius * view.scale;
-      for (const [mult, opacity] of [[1, 0.06], [0.65, 0.08], [0.35, 0.1]]) {
+      for (const [mult, opacity] of [[1, 0.14], [0.65, 0.18], [0.35, 0.22]]) {
         nebulaGroup.appendChild(svgEl('circle', {
           cx: bp.x.toFixed(1), cy: bp.y.toFixed(1), r: (br * mult).toFixed(1), fill: blob.color, opacity,
         }));
       }
     }
-
-    // Brighter background stars, clipped the same way as the nebula layer —
-    // known space reads as a denser, sharper starfield than the dim void
-    // around it.
-    const brightStarGroup = svgEl('g', { class: 'bg-stars-bright', 'clip-path': `url(#${REVEAL_CLIP_ID})` });
-    viewport.appendChild(brightStarGroup);
+    const brightStarGroup = svgEl('g', { class: 'bg-stars-bright' });
+    scannedGroup.appendChild(brightStarGroup);
     for (const star of bgStars) {
       const p = lyToPx(star);
       brightStarGroup.appendChild(svgEl('circle', {
         cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: (star.size * 1.3).toFixed(2), fill: '#fff', opacity: (0.3 + star.twinkle * 0.35).toFixed(2),
       }));
     }
-
-    // Soft glow trail — every past long-range scan leaves a lighter patch
-    // behind, so previously-covered territory reads differently from true
-    // darkness even after you've moved on. All glows share one group with
-    // mix-blend-mode: lighten so overlapping scans read as a single soft
-    // wash rather than stacking into brighter/darker bands.
-    const glowGroup = svgEl('g', { style: 'mix-blend-mode: lighten' });
-    viewport.appendChild(glowGroup);
-    for (const scan of save.scanHistory || []) {
-      const p = lyToPx(scan);
-      softGlow(glowGroup, p.x, p.y, scan.range * view.scale, GLOW_COLOR);
-    }
-    // Live sensor coverage from the current position, same soft treatment,
-    // plus a crisp amber boundary marking it as the *live* coverage circle
-    // specifically (as opposed to a permanently-scanned patch).
-    softGlow(glowGroup, ringCenter.x, ringCenter.y, sensorRange * view.scale, GLOW_COLOR);
 
     // Ship's travel path, in the order systems were first visited.
     const visited = save.stats.systemsVisited || [];
@@ -385,9 +392,11 @@ export function createStarmap(onSelectSystem) {
   let lastX = 0;
   let lastY = 0;
   let pinchDist = null;
+  let animating = false; // true while animateJump() owns the camera — pan/zoom input is ignored meanwhile
   const pointers = new Map();
 
   svg.addEventListener('pointerdown', (e) => {
+    if (animating) return;
     if (pointers.size === 0) {
       dragMoved = false;
       hadMultiTouch = false;
@@ -409,7 +418,7 @@ export function createStarmap(onSelectSystem) {
   });
 
   svg.addEventListener('pointermove', (e) => {
-    if (!pointers.has(e.pointerId)) return;
+    if (animating || !pointers.has(e.pointerId)) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (pointers.size >= 2) {
@@ -454,6 +463,7 @@ export function createStarmap(onSelectSystem) {
 
   svg.addEventListener('wheel', (e) => {
     e.preventDefault();
+    if (animating) return;
     view.scale = clampScale(view.scale * (e.deltaY < 0 ? 1.1 : 0.9));
     redraw();
   }, { passive: false });
@@ -476,6 +486,48 @@ export function createStarmap(onSelectSystem) {
       view.cx = sys.pos.x;
       view.cy = sys.pos.y;
       redraw();
+    },
+    /**
+     * Plays the jump as an actual bit of travel rather than the destination
+     * just silently appearing: recenters on the departure point, then glides
+     * the camera to the destination over `durationMs`. Since the camera's
+     * center *is* the ship's position every frame, the ship marker never has
+     * to be drawn or moved explicitly — it's always exactly at the viewport
+     * center — while the departure point recedes into a trailing dashed line
+     * behind it as the camera pulls away. Input is ignored for the duration
+     * so a drag/pinch mid-flight can't fight the auto-pan.
+     */
+    animateJump(fromPos, toPos, durationMs, onComplete) {
+      if (!ctxRef) {
+        onComplete?.();
+        return;
+      }
+      animating = true;
+      view.cx = fromPos.x;
+      view.cy = fromPos.y;
+      const start = performance.now();
+      const center = VIEW_SIZE / 2;
+      function frame(now) {
+        const t = Math.min(1, (now - start) / durationMs);
+        const eased = easeInOutQuad(t);
+        view.cx = fromPos.x + (toPos.x - fromPos.x) * eased;
+        view.cy = fromPos.y + (toPos.y - fromPos.y) * eased;
+        redraw();
+        const fromPx = lyToPx(fromPos);
+        viewport.appendChild(svgEl('line', {
+          x1: fromPx.x.toFixed(1), y1: fromPx.y.toFixed(1), x2: center, y2: center, stroke: '#e8a34c', 'stroke-width': 2, 'stroke-dasharray': '5 5', opacity: 0.85,
+        }));
+        viewport.appendChild(svgEl('circle', {
+          cx: center, cy: center, r: 6, fill: '#e8a34c', stroke: '#0a0e18', 'stroke-width': 1.5,
+        }));
+        if (t < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          animating = false;
+          onComplete?.();
+        }
+      }
+      requestAnimationFrame(frame);
     },
   };
 }
