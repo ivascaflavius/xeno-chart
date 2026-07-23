@@ -63,9 +63,13 @@ implement wall-clock-based decay of any resource.
 We discussed a lot of rich mechanics. For buildability and clarity, this spec
 deliberately trims scope. Follow these simplifications unless told otherwise:
 
-- **Biochemistry axis**: ship with exactly 3 types for v1 — `carbon-dna` (common),
-  `carbon-rna` (rare), `silicon` (very rare). Do not add mirror-chirality or
-  invented-polymer types until Phase 3, if at all.
+- **Biochemistry axis**: shipped with 3 types for v1 — `carbon-dna` (common),
+  `carbon-rna` (rare), `silicon` (very rare) — with `mirror-chirality` and
+  `invented-polymer` added later as planned, once Phase 3 landed. All five are
+  now implemented (`data/constants.js` `BIOCHEMISTRY_TYPES`). Carbon-DNA and
+  carbon-RNA use distinct short captions (`Carbon-DNA` / `Carbon-RNA`) in the
+  codex grid and tooltips — they used to share the single word `Carbon`,
+  making the two indistinguishable at a glance.
 - **Genesis lineage web** (the panspermia mystery): this is a **Phase 3** feature.
   Build the underlying data (each life discovery gets a hidden `genesisMarkerId`)
   in Phase 1 so it's cheap to visualize later, but do not build the lineage-web
@@ -180,7 +184,10 @@ Guiding rules for how these pieces talk to each other:
 Build these as distinct states in one finite-state-machine (see the
 responsive-webapp conventions in §8). Use real `<button>` elements throughout.
 
-1. **Main menu** — New expedition / Continue / How to fly / Settings
+1. **Main menu** — New expedition / Continue / Saved Slots / How to fly /
+   Settings. Continue always resumes the most-recently-played slot directly
+   (no picker); Saved Slots opens the full slot picker (§14a) for choosing a
+   different one.
 2. **New expedition setup** — choose difficulty (Relaxed / Expedition), optionally
    enter a seed code, optionally pick a save slot
 3. **Starmap** (primary hub) — pan/zoom view, fog-of-war tiers (§6), fuel-range
@@ -206,9 +213,20 @@ responsive-webapp conventions in §8). Use real `<button>` elements throughout.
 11. **Credits** — see §9a
 12. **Pause menu** — Resume / How to fly / Settings / Main menu
 13. **Expedition summary / game over** — shown on life-support failure or on
-    being irrecoverably stranded (§5, §16b), with a distinct title/message per
-    ending; stats for the run (systems visited, life found, distance
-    traveled, seed code), option to start a new expedition
+    being irrecoverably stranded (§5, §16b). A short title + one-line subtitle
+    up top (always a summary of, never identical to, the longer Details
+    explanation below), then three tabs: **Details** (a full retrospective
+    paragraph naming the specific resource/route that ran out, plus run stats:
+    galaxy, seed, systems visited, life found, distance traveled, cycles
+    survived), **Journal** (this run's event log, reusing the Journal screen's
+    entry rendering), and **Codex** (discovered/total counts per track +
+    achievements, with a button through to the full Codex). Bottom row: Start
+    New Expedition / Copy Seed / Main Menu.
+14. **Journal** — a reverse-chronological log of this expedition's notable
+    events (scans, jumps, harvests, biosignature discoveries), each entry
+    icon-tagged and cycle-stamped; filter tabs for All/Scans/Jumps/Harvests/
+    Biosignatures. Reachable from the Galactic View header and reused (in a
+    trimmed form) as a tab on the Game Over screen. Per-save, not global.
 
 ### 9a. Credits screen content
 
@@ -244,6 +262,28 @@ Ship systems dashboard shows each module as: icon, label, a progress bar for its
 input buffer level, and a status dot. When a buffer hits empty, downstream modules
 that depend on its output also go amber/red — implement this as a simple
 dependency chain, not a full simulation.
+
+**Shared ship/cargo bar**: a single `cargoBar()` component (`ui/components/
+cargoBar.js`) renders the four resources and the four mineral buffers as one
+compact icon-row block — one line per resource (icon, current amount, and a
+thin fullness bar all on that one line, colored green/amber/red per
+`statusFor()`) — and is reused, identically, across every gameplay screen:
+Galactic View, System View, Planetary View (Scan Detail), and Ship Systems.
+Seeing the exact same panel everywhere means a resource sliding toward empty
+is recognizable no matter which screen the player happens to be on, and
+mining a planet's minerals is visibly "feeding" the same buffers shown
+everywhere else.
+
+**Early warnings**: the same amber threshold that colors an HUD icon also
+fires a low-urgency banner (`ui/components/statusBanners.js`) naming the
+specific resource, its current level, and which mineral/module would refill
+it (e.g. "Oxygen running low — mine ice to keep the Electrolysis Unit topped
+up"), well before that resource actually hits zero and the life-support-
+critical/stranded banners take over. These banners — plus the life-support
+countdown and stranded/distress-beacon banners — are shared across Galactic
+View, System View, and Planetary View for the same reason as the cargo bar
+above: a problem that starts while mining a planet shouldn't only become
+visible once the player happens to navigate back to the Galactic View.
 
 **Jump cost** = base cost scaled by distance (light-years). Implement as a simple
 linear-with-minimum formula, e.g. `cost = baseCost + distance * costPerLy`, applied
@@ -344,7 +384,26 @@ The data model has no literal orbital-distance value — a planet's generation
   complex/intelligent life; a planet without it clamps down to simple/microbial.
 - **`ice-giant`** is a Neptune/Uranus-style outer-zone class distinct from
   `gas-giant` (fewer, fainter bands); a gas giant that lands in the inner
-  zone is flagged as a "hot Jupiter" and never renders a ring.
+  zone is flagged as a "hot Jupiter" — rendered as a gas giant with the same
+  banded texture but a reddish palette (`HOT_JUPITER_COLOR`), always closer to
+  the star than the habitable zone, and never a ring (rings read as a cooler/
+  further-out feature, which a scorched inner-zone giant shouldn't have).
+- **`super-earth`**, **`iron`**, and **`dwarf`** round out the terrestrial
+  variety: super-earth is a larger rocky/water-bearing world that can still
+  sit in the habitable band; iron is a dense, ringless inner-zone world with
+  no surface water; dwarf is a small, resource-sparse outer-zone body. All
+  three follow the same `zones`/`hasSurfaceWater`/`minerals` contract as the
+  original classes — no special-casing needed elsewhere.
+- **Binary planets**: with a small chance (`BINARY_PLANET_CHANCE`) any
+  eligible planet generates a companion body that mutually orbits it around a
+  shared barycenter, mirroring binary star mechanics (§7b) at planet scale —
+  both bodies visibly orbit a point between them in the orbit diagram rather
+  than one orbiting the other.
+- Hot Jupiter and binary planet are **modifiers layered on an existing
+  class**, not classes of their own (a gas giant that migrated in close; any
+  planet with a second body sharing its orbit) — but both get their own
+  synthetic Codex entries (built in `codex.js`'s `buildItems()`) since they're
+  meant to be separately discoverable, unlike the "young star" modifier below.
 - **Moons**: each planet rolls a class-appropriate moon count (cosmetic only),
   shown as an animated orbit diagram in Scan Detail; System View shows a
   matching animated orbit diagram of the system's planets around its star,
@@ -358,6 +417,37 @@ The data model has no literal orbital-distance value — a planet's generation
   with planets designated off it (`Kepler-437 B`); ships default to a
   generated name (e.g. "Iron Pilgrim") when the player leaves the field blank
   at New Expedition. All deterministic from the seed.
+
+### 7b. Stellar variety (implemented post-Phase-3)
+
+`STAR_CLASSES` (`data/constants.js`) covers the ordinary main-sequence run
+(O/B/A/F/G/K/M) plus white dwarfs, neutron stars, black holes, and magnetars
+from earlier phases, extended with five more distinct, separately-discoverable
+Codex entries:
+
+- **Red giant (`RG`) / blue giant (`BG`)**: an aged, swollen star — rendered
+  as a much larger portrait than a main-sequence star of the same color, using
+  the existing size-scaling knobs rather than new art.
+- **Binary system (`BIN`)**: two stars, varying but not identically sized,
+  mutually orbiting a shared barycenter between them — visualized in the
+  orbit diagram as two nested `.orbit-spin` groups with different
+  `transform-origin` points riding the same rotation, so both bodies actually
+  swing around the shared center instead of one looking like it orbits the
+  other. Planets in a binary system orbit the pair as a whole, not either star
+  individually. Codex icon shows two stars, not one.
+- **Supernova remnant (`SNR`)**: a "young planetary nebula" left behind by a
+  star that has already gone — planets can still be found orbiting it.
+  Rendered as a diffuse glowing shell rather than a point source.
+- **Rogue planet (`ROGUE`)**: technically listed among star classes because,
+  like every other system, it orbits the galactic center directly rather than
+  any parent star — appears dark/cold in the starmap and portraits (no
+  star-glow halo), distinct from every other entry which reads as a light
+  source.
+- `youngEligible` (a boolean per class) gates which classes can additionally
+  roll the pre-existing "young star" flag (§15a) — giants, remnants, and
+  rogue planets are never "young," since that flag specifically means
+  "still in its star-forming cloud," which doesn't apply to an aged, dead, or
+  star-less object.
 
 ## 8. Technical conventions (follow the responsive-webapp skill)
 
@@ -399,7 +489,10 @@ players can factor them into jump planning), not as surprise ambushes.
   discovered (full art) vs. locked (silhouette) entries
 - Achievements list is a simple flat list with unlocked/locked state, no tiers
   needed for v1 — e.g. "first pulsar," "first intelligent life," "10 systems
-  mapped," "survive a stranding," "discover a wormhole"
+  mapped," "survive a stranding," "discover a wormhole". Each entry
+  (`data/constants.js` `ACHIEVEMENTS`) also carries an `iconName` — a themed
+  icon shown in green once unlocked, or a plain "?" glyph (same "don't spoil
+  the locked entry" convention as the codex grid's silhouette) while locked.
 - Store achievement + codex progress **globally** (across all saves/expeditions),
   separate from per-expedition save state, so completionist progress persists
   even if a run ends
@@ -423,10 +516,19 @@ event:
 
 | Tier | Example trigger | Visual | Audio |
 |---|---|---|---|
-| `minor` | new mineral type, routine scan | Small toast, slides in from a corner, auto-dismisses in ~2s, no motion beyond the slide | Soft, short blip (§15) |
-| `notable` | first of a common star/planet class, small achievement | Toast + a brief icon flourish (e.g. the codex-entry icon scales up and settles), stays ~3-4s | Distinct short chime |
-| `rare` | first life discovery, wormhole found, larger achievement | Centered banner (not just a corner toast), light confetti burst (a couple dozen particles, short-lived), stays until dismissed or ~5s | Rare-discovery stinger (§15) |
-| `landmark` | intelligent life, a Phase 3 lineage-cluster resolution, "point of origin" | Full-width banner with the specimen/system portrait shown large, a longer confetti burst, screen briefly dims behind it to draw focus | Landmark stinger, longer/more distinct |
+| `minor` | new mineral type, routine scan | Small toast, slides in at the top-right corner, auto-dismisses in ~2s, no motion beyond the slide | Soft, short blip (§15) |
+| `notable` | first of a common star/planet class, small achievement | Same top-right toast + a brief icon flourish (e.g. the codex-entry icon scales up and settles), stays ~3-4s | Distinct short chime |
+| `rare` | first life discovery, wormhole found, larger achievement | Same top-right slot, a bigger card, light confetti burst (a couple dozen particles, short-lived) bursting from that corner, stays until dismissed or ~5s | Rare-discovery stinger (§15) |
+| `landmark` | intelligent life, a Phase 3 lineage-cluster resolution, "point of origin" | Same top-right slot again, biggest card with the specimen/system portrait, a longer confetti burst from that corner | Landmark stinger, longer/more distinct |
+
+*(Revised from the original design.)* `rare`/`landmark` originally popped up
+as a centered, full-width banner with a dimmed background — in practice this
+read as a jarring modal interruption rather than a bigger notification, and
+its confetti burst (centered on the whole screen) didn't read as connected to
+the toast. All four tiers now land in the exact same top-right corner as
+`minor`/`notable`, just with a progressively bigger card and a bigger/longer
+confetti burst anchored to that same corner — a "bigger notification," not a
+different kind of UI, and no interruption to input at any tier.
 
 Implementation notes:
 
@@ -503,19 +605,30 @@ guided walkthrough and fits a game this systems-driven.
 
 ### 14a. Resume flow
 
-"Continue expedition" on the main menu opens a **save slot picker**, not a direct
-resume — even with only one slot in Phase 1, build the picker screen so adding
-slots in Phase 2 doesn't require reworking this flow. Each slot shows:
+Originally "Continue expedition" on the main menu always opened a **save slot
+picker**, even with only one slot in use. Once multiple slots were in regular
+use this became one extra tap for the common case of just picking up where
+you left off, so the main menu now offers two distinct entry points instead:
+
+- **Continue** — resumes the most-recently-played slot directly (by
+  last-played timestamp), no picker shown, exactly like there was only ever
+  one slot. Disabled if no slot has any save data.
+- **Saved Slots** — opens the full slot picker (renamed from "Continue
+  Expedition") for choosing a specific slot, e.g. to resume an older
+  expedition instead of the latest one, or to Export/Delete a slot.
+
+Each slot in the picker shows:
 
 - The galaxy name (§7) and difficulty mode
 - A brief snapshot: current ship name, systems visited, cycle count, last-played
   timestamp
 - Buttons: Resume / Export / Delete
 
-Selecting Resume loads that slot's exact saved state and drops the player
-straight into the starmap — no re-simulation, no catch-up logic, since nothing
-decays while the game is closed (§2). An empty slot shows a "start new
-expedition into this slot" prompt instead of a snapshot.
+Selecting Resume (from either entry point) loads that slot's exact saved state
+and drops the player straight into the Galactic View — no re-simulation, no
+catch-up logic, since nothing decays while the game is closed (§2). An empty
+slot shows a "start new expedition into this slot" prompt instead of a
+snapshot.
 
 ## 15. Audio
 
@@ -679,6 +792,57 @@ build; each is documented in more detail at its relevant section above:
   expedition) and a **deadlock ending**: being stranded with beacons
   exhausted and no scan/harvest options left now resolves into its own
   game-over screen instead of silently freezing with no legal action left (§5)
+
+### 16c. Second post-Phase-3 polish wave (implemented)
+
+A further round of player-facing polish followed 16b, again documented in
+more detail at its relevant section above:
+
+- **Saved Slots / Continue-latest split** (§14a): Continue now resumes the
+  most-recently-played slot directly; a separate Saved Slots entry opens the
+  full picker for choosing a different slot
+- **Game Over screen redesign** (§4 item 13): tabbed into Details/Journal/
+  Codex, with per-icon stat rows, a full retrospective explanation naming the
+  specific resource/route that failed (instead of the ending arriving "out of
+  nowhere"), a subtitle that's always a short summary of (never identical to)
+  that explanation, and Copy Seed / Main Menu buttons alongside Start New
+  Expedition
+- **Journal screen** (§4 item 14): reverse-chronological event log with
+  filter tabs, reachable from the Galactic View header and reused as a Game
+  Over tab
+- **Galactic View header restructuring**: menu button / title / journal
+  button in one header row (matching every other screen's header), a galaxy
+  info panel (icon + galaxy name + mode/cycle + ship/system, mirroring the
+  System View star panel and Scan Detail planet panel), and the shared
+  `cargoBar()` below it (§5) — replacing the older separate HUD-chip row
+- **Early warnings + shared status banners** (§5): low-urgency "resource
+  running low, mine X to fix it" banners, plus the life-support-critical and
+  stranded/beacon banners, now appear identically on Galactic View, System
+  View, and Planetary View, not just the Galactic View
+- **Stellar variety** (§7b): red/blue giants, binary star systems (mutual
+  orbit around a shared barycenter, two-star codex icon), supernova remnants,
+  and rogue planets (dark, no star-glow, still orbit the galactic center
+  directly)
+- **Exo-planetary variety** (§7a): hot Jupiter (now a proper reddish
+  banded-gas-giant look, always inner-zone, no ring, and a fixed rendering bug
+  where a stray halo/glow used to bleed onto *other*, non-hot-Jupiter gas
+  giants), super-earth, iron, dwarf, and binary planet (mutual orbit around a
+  shared barycenter, mirroring binary stars at planet scale) classes
+- **Codex mobile layout fix**: the Lineage tab's species-name row no longer
+  misaligns when a generated name is long enough to wrap on a narrow viewport
+- **Carbon-DNA/Carbon-RNA distinction** (§3): the two used to share the
+  caption "Carbon" in the Biological codex grid, making them indistinguishable
+  at a glance; they now read "Carbon-DNA"/"Carbon-RNA"
+- **Achievement icons** (§11): each achievement now has a themed icon instead
+  of a plain colored dot
+- **Celebration toast repositioning** (§11a): `rare`/`landmark` tiers moved
+  from a centered, dimmed full-screen modal to the same top-right corner as
+  `minor`/`notable`, just bigger — confetti now bursts from that corner too
+- **Compact resource/cargo bars** (§5): each resource/mineral entry is now a
+  single line (icon + number + thin bar) instead of three stacked sub-rows,
+  and the combined Ship+Cargo panel is now shown on every gameplay screen
+  including Ship Systems (previously resources-only there) and Galactic View
+  (previously ship-only there) — the exact same panel everywhere, per §5
 
 ### 16a. Phase 1 definition of done
 
