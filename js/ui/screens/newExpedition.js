@@ -136,8 +136,7 @@ export function render(container, gs) {
       seedInput,
     ]),
     el('div', { className: 'spacer' }),
-    el('div', { className: 'row' }, [
-      el('div', { className: 'spacer' }),
+    el('div', { className: 'row', style: 'justify-content:center' }, [
       iconButton({
         iconName: 'rocket',
         label: 'Launch',

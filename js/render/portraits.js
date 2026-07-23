@@ -77,9 +77,51 @@ function youngStarCloud(r) {
   `).join('');
 }
 
+/** An expanding, colorful shell of ejecta around a small dim compact core — the aftermath of the star that used to be here (§7 polish). */
+function supernovaRemnantPortrait(r, color) {
+  const shellColors = ['#c9a6ff', '#ff9ad6', '#8fd6ff'];
+  const shells = [2.6, 1.9, 1.3].map((mult, i) => `
+    <circle cx="50" cy="50" r="${(r * mult).toFixed(1)}" fill="none" stroke="${shellColors[i % shellColors.length]}"
+      stroke-width="${(2.2 - i * 0.4).toFixed(1)}" opacity="${(0.35 - i * 0.08).toFixed(2)}"/>
+  `).join('');
+  return `
+    ${shells}
+    <circle cx="50" cy="50" r="${(r * 0.55).toFixed(1)}" fill="${color}" opacity="0.7"/>
+  `;
+}
+
+/**
+ * Two stars orbiting a shared barycenter (§7 polish) — reuses the same
+ * generic `.orbit-spin` keyframe as planets/moons, just centered on the
+ * viewBox's own midpoint instead of a further-out orbital ring. Sizing
+ * mirrors the plain single-star formula (16 + massRoll*10) for both members
+ * so the pair reads as two ordinary stars rather than a star-plus-something.
+ */
+function binaryStarPortrait(primaryColor, primaryMassRoll, companion) {
+  const rA = 16 + primaryMassRoll * 10;
+  const rB = 16 + companion.massRoll * 10;
+  const sep = 15;
+  return `
+    <circle cx="50" cy="50" r="${(sep + Math.max(rA, rB) * 1.6).toFixed(1)}" fill="${primaryColor}" opacity="0.08"/>
+    <g class="orbit-spin" style="transform-origin:50px 50px">
+      <circle cx="${(50 + sep).toFixed(1)}" cy="50" r="${rA.toFixed(1)}" fill="${primaryColor}"/>
+      <circle cx="${(50 - sep).toFixed(1)}" cy="50" r="${rB.toFixed(1)}" fill="${companion.color}"/>
+    </g>
+  `;
+}
+
+/** A cold, non-luminous world sitting where a star would be — no glow/bloom, just a flat dim sphere with a faint highlight (§7 polish, rogue planets). */
+function roguePlanetPortrait(r, color) {
+  return `
+    <circle cx="50" cy="50" r="${r.toFixed(1)}" fill="${color}"/>
+    <circle cx="${(50 - r * 0.3).toFixed(1)}" cy="${(50 - r * 0.3).toFixed(1)}" r="${(r * 0.35).toFixed(1)}" fill="#7a7a86" opacity="0.25"/>
+  `;
+}
+
 export function starPortrait(id, star) {
   return cached(`star:${id}`, () => {
-    const r = 16 + star.massRoll * 10;
+    const isGiant = star.class === 'RG' || star.class === 'BG';
+    const r = isGiant ? 24 + star.massRoll * 14 : 16 + star.massRoll * 10;
     const cloud = star.young ? youngStarCloud(r) : '';
     let body;
     if (star.class === 'BH') {
@@ -88,17 +130,29 @@ export function starPortrait(id, star) {
       body = pulsarPortrait(r, star.color);
     } else if (star.class === 'MAG') {
       body = magnetarPortrait(r, star.color);
+    } else if (star.class === 'SNR') {
+      body = supernovaRemnantPortrait(r, star.color);
+    } else if (star.class === 'BIN' && star.companion) {
+      body = binaryStarPortrait(star.color, star.massRoll, star.companion);
+    } else if (star.class === 'ROGUE') {
+      body = roguePlanetPortrait(r, star.color);
     } else {
+      const glowOuter = isGiant ? 2.8 : 2.2;
+      const glowMid = isGiant ? 1.8 : 1.5;
       body = `
-        <circle cx="50" cy="50" r="${(r * 2.2).toFixed(1)}" fill="${star.color}" opacity="0.12"/>
-        <circle cx="50" cy="50" r="${(r * 1.5).toFixed(1)}" fill="${star.color}" opacity="0.3"/>
+        <circle cx="50" cy="50" r="${(r * glowOuter).toFixed(1)}" fill="${star.color}" opacity="0.12"/>
+        <circle cx="50" cy="50" r="${(r * glowMid).toFixed(1)}" fill="${star.color}" opacity="0.3"/>
         <circle cx="50" cy="50" r="${r.toFixed(1)}" fill="${star.color}"/>
       `;
     }
+    // A rogue planet doesn't shimmer like an active star, so it skips the flicker animation the rest share.
+    const wrappedBody = star.class === 'ROGUE'
+      ? body
+      : `<g class="portrait-star-flicker" style="transform-origin:50px 50px">${body}</g>`;
     return `
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         ${cloud}
-        <g class="portrait-star-flicker" style="transform-origin:50px 50px">${body}</g>
+        ${wrappedBody}
       </svg>
     `;
   });
@@ -170,6 +224,58 @@ function planetTexture(planet, radius) {
           fill="${color}" opacity="0.85"/>
       `).join('');
     }
+    case 'super-earth': {
+      // Bigger, busier version of earth-like's continent blobs — a super-Earth
+      // reads as "more world" rather than a wholly different look.
+      const blobs = [
+        {
+          cx: 50 + ((seedish % 8) - 4), cy: 40 + ((seedish % 6) - 3), r: radius * 0.5, color: '#3f6b38',
+        },
+        {
+          cx: 60 - (seedish % 7), cy: 58 + (seedish % 5), r: radius * 0.4, color: '#7a6a3f',
+        },
+        {
+          cx: 38 + (seedish % 5), cy: 60 - (seedish % 4), r: radius * 0.3, color: '#3f6b38',
+        },
+      ];
+      return blobs.map(({
+        cx, cy, r, color,
+      }) => `
+        <path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)}
+                 Q ${cx.toFixed(1)} ${(cy - r * 1.3).toFixed(1)} ${(cx + r).toFixed(1)} ${cy.toFixed(1)}
+                 Q ${cx.toFixed(1)} ${(cy + r * 1.1).toFixed(1)} ${(cx - r).toFixed(1)} ${cy.toFixed(1)} Z"
+          fill="${color}" opacity="0.85"/>
+      `).join('');
+    }
+    case 'iron': {
+      // Jagged metallic fracture lines across the surface — an exposed-core
+      // look distinct from rocky's rounder crater dots.
+      let cracks = '';
+      for (let i = 0; i < 3 + (seedish % 2); i++) {
+        const angle = (i / 3) * Math.PI * 2 + seedish * 0.7;
+        const x1 = 50 + Math.cos(angle) * radius * 0.15;
+        const y1 = 50 + Math.sin(angle) * radius * 0.15;
+        const x2 = 50 + Math.cos(angle) * radius * 0.85;
+        const y2 = 50 + Math.sin(angle) * radius * 0.85;
+        const midX = (x1 + x2) / 2 + ((seedish * (i + 1)) % 7) - 3;
+        const midY = (y1 + y2) / 2 + ((seedish * (i + 2)) % 7) - 3;
+        cracks += `<path d="M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${midX.toFixed(1)} ${midY.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}" stroke="${lighter}" stroke-width="1.4" fill="none" opacity="0.55"/>`;
+      }
+      return cracks;
+    }
+    case 'dwarf': {
+      // Sparse, pale craters — a small quiet body, less textured than a full rocky world.
+      const count = 2 + (seedish % 3);
+      let dots = '';
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2 + seedish * 1.3;
+        const dist = radius * (0.2 + ((seedish * (i + 1)) % 8) / 20);
+        const cx = 50 + Math.cos(angle) * dist;
+        const cy = 50 + Math.sin(angle) * dist;
+        dots += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${1.5 + (i % 2)}" fill="${lighter}" opacity="0.4"/>`;
+      }
+      return dots;
+    }
     default:
       return '';
   }
@@ -212,13 +318,21 @@ function mineralDecorator() {
   `;
 }
 
+// A hot Jupiter renders exactly like an ordinary gas giant (bands, self-spin,
+// no ring — see below) except for its color: a scorched red-orange rather
+// than the usual tan/blue palette, since it migrated in close enough to
+// bake. No extra glow/halo layered on top of it — that read as an unrelated
+// blurry patch behind the planet rather than anything meaningful.
+export const HOT_JUPITER_COLOR = '#c1503a';
+
 export function planetPortrait(id, planet, { decorate = true } = {}) {
   return cached(`planet:${id}:${decorate ? 'd' : 'plain'}`, () => {
     const radius = 22 + planet.sizeRoll * 14;
+    const renderPlanet = planet.hotJupiter ? { ...planet, color: HOT_JUPITER_COLOR } : planet;
     // Ring variety (§7 polish) — not every gas giant is Saturn; a "hot
     // Jupiter" (the innermost gas giant in a system, see planets.js) never
     // gets one at all — migrated in too close/tidally battered to keep a
-    // ring system — and gets a warm glow instead of the cooler default look.
+    // ring system.
     const hasRing = (planet.class === 'gas-giant' || planet.class === 'ice-giant') && !planet.hotJupiter && planet.sizeRoll > 0.4;
     // rx capped at 1.3x radius (not the more dramatic 1.7x a real ring-plane
     // deserves) so the tilted ellipse's bounding box always stays inside the
@@ -227,9 +341,6 @@ export function planetPortrait(id, planet, { decorate = true } = {}) {
     const ring = hasRing
       ? `<ellipse cx="50" cy="50" rx="${(radius * 1.3).toFixed(1)}" ry="${(radius * 0.4).toFixed(1)}" fill="none" stroke="${shade(planet.color, 0.3)}" stroke-width="2" opacity="0.6" transform="rotate(-15 50 50)"/>`
       : '';
-    const hotJupiterGlow = planet.hotJupiter
-      ? `<circle cx="50" cy="50" r="${(radius * 1.6).toFixed(1)}" fill="#ff7a45" opacity="0.16"/>`
-      : '';
     const hasMinerals = planet.minerals && Object.keys(planet.minerals).length > 0;
     // Slow self-rotation (polish round 5) — duration/direction derived from
     // sizeRoll (already on the planet) rather than a fresh RNG draw, so every
@@ -237,45 +348,33 @@ export function planetPortrait(id, planet, { decorate = true } = {}) {
     const spinDuration = (40 - planet.sizeRoll * 20).toFixed(1);
     const spinDirection = planet.sizeRoll < 0.5 ? 'normal' : 'reverse';
 
-    // Most planets should read as spinning about a roughly vertical axis —
-    // surface features sweeping left/right across a fixed silhouette — not a
-    // flat disc spinning face-on like a coin, which is what a literal
-    // rotate() of the whole texture looks like once it has any asymmetric
-    // detail (gas-giant bands especially). That's simulated by clipping the
-    // texture to the planet's circle and scrolling it horizontally, with the
-    // pattern tripled left/center/right so the scroll always has coverage
-    // and loops seamlessly. A small deterministic minority spin the old
-    // (literal rotate) way instead — a stand-in for a Uranus-style planet
-    // whose axis points at the viewer rather than to the side.
-    const isPolarSpin = Math.floor(planet.sizeRoll * 100) % 6 === 0;
-
-    let body;
-    if (isPolarSpin) {
-      body = `
-        ${hotJupiterGlow}
-        <g class="portrait-planet-spin" style="transform-origin:50px 50px; animation-duration:${spinDuration}s; animation-direction:${spinDirection}">
-          ${ring}
-          <circle cx="50" cy="50" r="${radius.toFixed(1)}" fill="${planet.color}"/>
-          <g>${planetTexture(planet, radius)}</g>
+    // Every planet reads as spinning about the same roughly-vertical
+    // equatorial axis — surface features (including gas-giant bands)
+    // sweeping left/right across a fixed silhouette — rather than a flat
+    // disc spinning face-on like a coin. A literal rotate() of the whole
+    // texture group used to stand in for a Uranus-style pole-on axis for a
+    // deterministic minority of planets, but that also spun the ring (and
+    // the unclipped gas-band ellipses, which are as wide as the planet
+    // itself) around with it, periodically swinging them past the planet's
+    // own silhouette. Always clipping the texture to the planet's circle and
+    // scrolling it horizontally — tripling the pattern left/center/right so
+    // the scroll always has coverage and loops seamlessly — keeps every
+    // planet's rotation, and its moons' fixed equatorial orbital plane,
+    // visually consistent.
+    const diameter = radius * 2;
+    const scrollDist = (spinDirection === 'reverse' ? -diameter : diameter).toFixed(1);
+    const texture = planetTexture(renderPlanet, radius);
+    const body = `
+      ${ring}
+      <g style="clip-path: circle(${radius.toFixed(1)}px at 50px 50px) view-box;">
+        <circle cx="50" cy="50" r="${radius.toFixed(1)}" fill="${renderPlanet.color}"/>
+        <g class="portrait-planet-scroll" style="animation-duration:${spinDuration}s; --scroll-dist:${scrollDist}px;">
+          <g transform="translate(${(-diameter).toFixed(1)},0)">${texture}</g>
+          <g>${texture}</g>
+          <g transform="translate(${diameter.toFixed(1)},0)">${texture}</g>
         </g>
-      `;
-    } else {
-      const diameter = radius * 2;
-      const scrollDist = (spinDirection === 'reverse' ? -diameter : diameter).toFixed(1);
-      const texture = planetTexture(planet, radius);
-      body = `
-        ${hotJupiterGlow}
-        ${ring}
-        <g style="clip-path: circle(${radius.toFixed(1)}px at 50px 50px) view-box;">
-          <circle cx="50" cy="50" r="${radius.toFixed(1)}" fill="${planet.color}"/>
-          <g class="portrait-planet-scroll" style="animation-duration:${spinDuration}s; --scroll-dist:${scrollDist}px;">
-            <g transform="translate(${(-diameter).toFixed(1)},0)">${texture}</g>
-            <g>${texture}</g>
-            <g transform="translate(${diameter.toFixed(1)},0)">${texture}</g>
-          </g>
-        </g>
-      `;
-    }
+      </g>
+    `;
 
     return `
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">

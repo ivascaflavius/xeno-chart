@@ -88,40 +88,60 @@ export const RELAXED_PENALTY = {
 };
 
 // `short` is a 1-2 word caption for the Codex grid tile (the full `label`,
-// with its parenthetical, is reserved for the hover tooltip).
+// with its parenthetical, is reserved for the hover tooltip). `youngEligible`
+// gates the "young/star-forming" visual modifier (§15a) — only plain
+// main-sequence classes make sense as young; an evolved giant or a compact
+// remnant does not, regardless of its `stable` flag (which instead governs
+// whether a class is eligible for the guaranteed-safe starting system and,
+// separately, whether planets can be expected to have survived around it).
 export const STAR_CLASSES = [
   {
-    key: 'O', label: 'O-type (blue giant)', short: 'O-type', weight: 1, color: '#9db4ff', stable: true,
+    key: 'O', label: 'O-type (blue giant)', short: 'O-type', weight: 1, color: '#9db4ff', stable: true, youngEligible: true,
   },
   {
-    key: 'B', label: 'B-type (blue-white)', short: 'B-type', weight: 2, color: '#aebfff', stable: true,
+    key: 'B', label: 'B-type (blue-white)', short: 'B-type', weight: 2, color: '#aebfff', stable: true, youngEligible: true,
   },
   {
-    key: 'A', label: 'A-type (white)', short: 'A-type', weight: 4, color: '#e3e8ff', stable: true,
+    key: 'A', label: 'A-type (white)', short: 'A-type', weight: 4, color: '#e3e8ff', stable: true, youngEligible: true,
   },
   {
-    key: 'F', label: 'F-type (yellow-white)', short: 'F-type', weight: 6, color: '#fff3d6', stable: true,
+    key: 'F', label: 'F-type (yellow-white)', short: 'F-type', weight: 6, color: '#fff3d6', stable: true, youngEligible: true,
   },
   {
-    key: 'G', label: 'G-type (yellow)', short: 'G-type', weight: 8, color: '#ffe17a', stable: true,
+    key: 'G', label: 'G-type (yellow)', short: 'G-type', weight: 8, color: '#ffe17a', stable: true, youngEligible: true,
   },
   {
-    key: 'K', label: 'K-type (orange)', short: 'K-type', weight: 8, color: '#ffb066', stable: true,
+    key: 'K', label: 'K-type (orange)', short: 'K-type', weight: 8, color: '#ffb066', stable: true, youngEligible: true,
   },
   {
-    key: 'M', label: 'M-type (red dwarf)', short: 'Red Dwarf', weight: 10, color: '#ff8266', stable: true,
+    key: 'M', label: 'M-type (red dwarf)', short: 'Red Dwarf', weight: 10, color: '#ff8266', stable: true, youngEligible: true,
   },
   {
-    key: 'WD', label: 'White dwarf', short: 'White Dwarf', weight: 2, color: '#dce6ff', stable: false,
+    key: 'RG', label: 'Red giant', short: 'Red Giant', weight: 1.2, color: '#ff7a5a', stable: true, youngEligible: false,
   },
   {
-    key: 'NS', label: 'Neutron star (pulsar)', short: 'Pulsar', weight: 1, color: '#c9d8ff', stable: false,
+    key: 'BG', label: 'Blue giant', short: 'Blue Giant', weight: 0.8, color: '#7fa3ff', stable: true, youngEligible: false,
   },
   {
-    key: 'BH', label: 'Black hole', short: 'Black Hole', weight: 0.5, color: '#0a0a12', stable: false,
+    key: 'BIN', label: 'Binary system', short: 'Binary', weight: 1.5, color: '#ffce7a', stable: true, youngEligible: false,
   },
   {
-    key: 'MAG', label: 'Magnetar', short: 'Magnetar', weight: 0.5, color: '#ff7ad9', stable: false,
+    key: 'WD', label: 'White dwarf', short: 'White Dwarf', weight: 2, color: '#dce6ff', stable: false, youngEligible: false,
+  },
+  {
+    key: 'NS', label: 'Neutron star (pulsar)', short: 'Pulsar', weight: 1, color: '#c9d8ff', stable: false, youngEligible: false,
+  },
+  {
+    key: 'BH', label: 'Black hole', short: 'Black Hole', weight: 0.5, color: '#0a0a12', stable: false, youngEligible: false,
+  },
+  {
+    key: 'MAG', label: 'Magnetar', short: 'Magnetar', weight: 0.5, color: '#ff7ad9', stable: false, youngEligible: false,
+  },
+  {
+    key: 'SNR', label: 'Supernova remnant', short: 'Remnant', weight: 0.4, color: '#c9a6ff', stable: false, youngEligible: false,
+  },
+  {
+    key: 'ROGUE', label: 'Rogue planet', short: 'Rogue', weight: 1, color: '#4a4a52', stable: false, youngEligible: false,
   },
 ];
 
@@ -129,6 +149,12 @@ export const STAR_CLASSES = [
 // modifier layered on top of its class, not a separate class, so it composes
 // with the existing star-class art rather than doubling the class list.
 export const YOUNG_STAR_CHANCE = 0.12;
+
+// Chance any given planet turns out to be a binary pair — two bodies orbiting
+// a shared barycenter at that same orbital slot instead of a single world
+// (§7 polish). Purely cosmetic/flavor like moons: the companion has no
+// separate minerals or harvesting of its own.
+export const BINARY_PLANET_CHANCE = 0.07;
 
 // `hasSurfaceWater` gates complex/intelligent life (§3, polish round 5) — a
 // planet without it can still host microbial/simple life (extremophiles,
@@ -166,6 +192,15 @@ export const PLANET_CLASSES = [
   {
     key: 'ice-giant', label: 'Ice giant', weight: 3, minerals: ['ice'], color: '#5a9bc2', hasSurfaceWater: false, zones: ['outer'],
   },
+  {
+    key: 'super-earth', label: 'Super-Earth', weight: 3, minerals: ['ore', 'water'], color: '#5a8a5f', hasSurfaceWater: true, zones: ['inner', 'habitable'],
+  },
+  {
+    key: 'iron', label: 'Iron planet', weight: 2, minerals: ['ore'], color: '#6b6b73', hasSurfaceWater: false, zones: ['inner'],
+  },
+  {
+    key: 'dwarf', label: 'Dwarf planet', weight: 4, minerals: ['ice'], color: '#9a8f8a', hasSurfaceWater: false, zones: ['outer'],
+  },
 ];
 
 // Moon count roll range per planet class — cosmetic only (orbit diagram in
@@ -179,6 +214,9 @@ export const MOON_COUNT_RANGES = {
   barren: [0, 2],
   'earth-like': [0, 2],
   'ice-giant': [0, 3],
+  'super-earth': [0, 3],
+  iron: [0, 1],
+  dwarf: [0, 2],
 };
 
 // Habitable-zone life bias (§6, §7, polish round 5) — planets outside the

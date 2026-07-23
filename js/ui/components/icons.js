@@ -53,6 +53,9 @@ const PATHS = {
   shipClass: '<path d="M12 2 21 6v6c0 5-4 8.5-9 10-5-1.5-9-5-9-10V6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12.3l2 2 4-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   seed: '<path d="M12 21c-4-2-6-5-6-9a6 6 0 0 1 12 0c0 4-2 7-6 9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 21V9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   journal: '<rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8 3v18" stroke="currentColor" stroke-width="1.6"/>',
+  info: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="10.5" width="2" height="7" rx="1" fill="currentColor"/><circle cx="12" cy="7" r="1.3" fill="currentColor"/>',
+  copy: '<rect x="9" y="9" width="11" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 15V6a2 2 0 0 1 2-2h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  galaxy: '<ellipse cx="12" cy="12" rx="3.6" ry="2" fill="currentColor"/><path d="M12 4.5c-4.5 0-8.2 2.4-9.4 5.8M12 19.5c4.5 0 8.2-2.4 9.4-5.8M4.8 7.5c-1.2 2.2-1.2 5.3 0 7.5M19.2 7.5c1.2 2.2 1.2 5.3 0 7.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>',
 };
 
 export function icon(name, size = 18) {

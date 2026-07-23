@@ -8,10 +8,13 @@ import { generateSpeciesName } from './names.js';
 const CLASS_MULTIPLIER = {
   ocean: 2.0,
   'earth-like': 2.2,
+  'super-earth': 1.8,
   rocky: 1.2,
   ice: 0.6,
   barren: 0.3,
   molten: 0.1,
+  iron: 0.15,
+  dwarf: 0.1,
   'gas-giant': 0.05,
   'ice-giant': 0.05,
 };

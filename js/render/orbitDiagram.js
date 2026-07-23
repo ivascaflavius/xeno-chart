@@ -45,6 +45,58 @@ function orbitingMarker({
   `;
 }
 
+/**
+ * Two bodies (a planet and its binary companion, or a binary system's two
+ * stars) mutually orbiting a shared point that itself orbits `center` —
+ * an inner `.orbit-spin` group nested inside the usual outer one. Both
+ * groups use the same generic keyframe (a plain 360° rotation); what differs
+ * is each one's own `transform-origin`, so they compose independently: the
+ * outer pivot is the system's star, the inner pivot is wherever this pair's
+ * own orbital point sits in the (pre-rotation) local coordinate space that
+ * both groups share — which is also where the pair's own geometry is drawn,
+ * so the inner pivot stays glued to the pair as the outer rotation carries
+ * it around.
+ */
+function binaryOrbitingMarker({
+  center, radius, initialDeg, durationS, reverse, primary, companion, mutualDurationS = 7,
+}) {
+  const px = (center + radius).toFixed(1);
+  const py = center.toFixed(1);
+  const sep = Math.max(primary.dotR, companion.dotR) * 1.7;
+  const primaryBody = `<circle cx="${(center + radius + sep).toFixed(1)}" cy="${py}" r="${primary.dotR.toFixed(1)}" fill="${primary.fill}" opacity="${primary.opacity ?? 1}"/>`;
+  const companionBody = `<circle cx="${(center + radius - sep).toFixed(1)}" cy="${py}" r="${companion.dotR.toFixed(1)}" fill="${companion.fill}"/>`;
+  return `
+    <g transform="rotate(${initialDeg.toFixed(1)} ${center} ${center})">
+      <g class="orbit-spin" style="transform-origin:${center}px ${center}px; animation-duration:${durationS}s;${reverse ? ' animation-direction:reverse;' : ''}">
+        <g class="orbit-spin" style="transform-origin:${px}px ${py}px; animation-duration:${mutualDurationS}s;">
+          ${primaryBody}
+          ${companionBody}
+        </g>
+      </g>
+    </g>
+  `;
+}
+
+/** The star (or binary pair) at a system orbit diagram's center. */
+function systemCenterStarHtml(center, star) {
+  if (star.class === 'BIN' && star.companion) {
+    const rA = 10 + star.massRoll * 6;
+    const rB = 10 + star.companion.massRoll * 6;
+    const sep = 16;
+    return `
+      <circle cx="${center}" cy="${center}" r="${(sep + Math.max(rA, rB) + 6).toFixed(1)}" fill="${star.color}" opacity="0.15"/>
+      <g class="orbit-spin" style="transform-origin:${center}px ${center}px; animation-duration:10s;">
+        <circle cx="${(center + sep).toFixed(1)}" cy="${center}" r="${rA.toFixed(1)}" fill="${star.color}" class="portrait-star-flicker" style="transform-origin:${(center + sep).toFixed(1)}px ${center}px"/>
+        <circle cx="${(center - sep).toFixed(1)}" cy="${center}" r="${rB.toFixed(1)}" fill="${star.companion.color}" class="portrait-star-flicker" style="transform-origin:${(center - sep).toFixed(1)}px ${center}px"/>
+      </g>
+    `;
+  }
+  return `
+    <circle cx="${center}" cy="${center}" r="20" fill="${star.color}" opacity="0.25"/>
+    <circle cx="${center}" cy="${center}" r="13" fill="${star.color}" class="portrait-star-flicker" style="transform-origin:${center}px ${center}px"/>
+  `;
+}
+
 /** Orbit diagram for a system's planets, for the bottom of System View. */
 export function systemOrbitHtml(sys) {
   const count = sys.planets.length;
@@ -61,18 +113,36 @@ export function systemOrbitHtml(sys) {
     rings.push(`<circle cx="${center}" cy="${center}" r="${r.toFixed(1)}" fill="none" stroke="#3a4358" stroke-width="1" stroke-dasharray="3 4"/>`);
 
     const withMinerals = hasMinerals(planet);
-    markers.push(orbitingMarker({
+    const sharedOrbitArgs = {
       center,
       radius: r,
       initialDeg: i * GOLDEN_ANGLE_DEG,
-      dotR: 5 + planet.sizeRoll * 3,
-      fill: withMinerals ? planet.color : '#5a6072',
-      opacity: withMinerals ? 1 : 0.45,
       // Inner orbits move faster than outer ones — a loose nod to Kepler's
       // third law, purely cosmetic (no gameplay meaning to the numbers).
       durationS: 18 + i * 7,
       reverse: i % 2 === 1,
-    }));
+    };
+    if (planet.binaryCompanion) {
+      markers.push(binaryOrbitingMarker({
+        ...sharedOrbitArgs,
+        primary: {
+          dotR: 4 + planet.sizeRoll * 2.4,
+          fill: withMinerals ? planet.color : '#5a6072',
+          opacity: withMinerals ? 1 : 0.45,
+        },
+        companion: {
+          dotR: 4 + planet.binaryCompanion.sizeRoll * 2.4,
+          fill: planet.binaryCompanion.color,
+        },
+      }));
+    } else {
+      markers.push(orbitingMarker({
+        ...sharedOrbitArgs,
+        dotR: 5 + planet.sizeRoll * 3,
+        fill: withMinerals ? planet.color : '#5a6072',
+        opacity: withMinerals ? 1 : 0.45,
+      }));
+    }
   });
 
   // Habitable-zone band (§6/§7 polish) — a soft ring behind everything else
@@ -94,8 +164,7 @@ export function systemOrbitHtml(sys) {
     <svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; display:block;">
       ${habitableZone}
       ${rings.join('')}
-      <circle cx="${center}" cy="${center}" r="20" fill="${sys.star.color}" opacity="0.25"/>
-      <circle cx="${center}" cy="${center}" r="13" fill="${sys.star.color}" class="portrait-star-flicker" style="transform-origin:${center}px ${center}px"/>
+      ${systemCenterStarHtml(center, sys.star)}
       ${markers.join('')}
     </svg>
   `;

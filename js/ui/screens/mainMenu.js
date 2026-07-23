@@ -2,6 +2,7 @@ import { el } from '../components/dom.js';
 import { iconButton } from '../components/iconButton.js';
 import { icon } from '../components/icons.js';
 import { mainMenuSceneHtml } from '../../render/mainMenuScene.js';
+import { SAVE_SLOT_COUNT } from '../../data/constants.js';
 
 // Same ringed-planet mark as favicon.svg, inlined so the title reads as a
 // small logo lockup instead of bare text — kept in sync by hand since
@@ -12,6 +13,17 @@ const BRAND_MARK_SVG = `
     <ellipse cx="16" cy="17" rx="14" ry="4" fill="none" stroke="#d9d9e8" stroke-width="2.5" transform="rotate(-20 16 17)"/>
   </svg>
 `;
+
+/** The slot with the most recent lastPlayedAt, or null if no slot has a save. */
+function latestPlayedSlot(gs) {
+  let best = null;
+  for (let i = 0; i < SAVE_SLOT_COUNT; i++) {
+    const save = gs.peekSave(i);
+    if (!save) continue;
+    if (!best || (save.lastPlayedAt || 0) > (best.lastPlayedAt || 0)) best = { slot: i, lastPlayedAt: save.lastPlayedAt };
+  }
+  return best ? best.slot : null;
+}
 
 export function render(container, gs) {
   const hasSave = gs.hasAnySave();
@@ -55,6 +67,15 @@ export function render(container, gs) {
         label: 'Continue',
         className: 'btn btn-block',
         disabled: !hasSave,
+        onClick: () => {
+          const slot = latestPlayedSlot(gs);
+          if (slot !== null) gs.loadExpedition(slot);
+        },
+      }),
+      iconButton({
+        iconName: 'save',
+        label: 'Saved Slots',
+        className: 'btn btn-block',
         onClick: () => gs.show('SLOT_PICKER'),
       }),
       iconButton({

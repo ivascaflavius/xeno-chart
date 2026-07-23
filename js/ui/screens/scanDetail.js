@@ -8,6 +8,7 @@ import { planetDesignation } from '../../procgen/names.js';
 import { moonOrbitOverlayHtml } from '../../render/orbitDiagram.js';
 import { planetStats } from '../../procgen/stats.js';
 import { screenHeader } from '../components/screenHeader.js';
+import { statusBanners } from '../components/statusBanners.js';
 
 const BAR_SCOPES = '.minerals-panel [data-resource-key], .cargo-bar-panel [data-resource-key]';
 
@@ -178,6 +179,7 @@ export function render(container, gs) {
     screenHeader('Planetary View', () => gs.show('SYSTEM_VIEW')),
     planetPanel,
     flash ? el('div', { className: 'banner banner-info', text: flash }) : null,
+    ...statusBanners(gs),
     cargoBar(gs.save),
     flowArrow,
     resourcesPanel,

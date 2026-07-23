@@ -35,18 +35,22 @@ function softGlow(group, cx, cy, r, color) {
   }
 }
 
-/** All of a close-scanned system's known minerals fully extracted — used for the "tapped out" marker glyph. */
+/**
+ * True once there is nothing left to harvest in a close-scanned system —
+ * either every known mineral has been fully extracted, or the system never
+ * had any minerals to begin with (e.g. a planet-only system with no
+ * resources). Either way there's nothing more to do there, so it gets the
+ * same "tapped out" marker glyph.
+ */
 function isFullyHarvested(baseSeedInt, save, systemId) {
   const sys = getSystem(baseSeedInt, systemId);
-  let hadMinerals = false;
   for (const planet of sys.planets) {
     for (const [mineral, total] of Object.entries(planet.minerals)) {
-      hadMinerals = true;
       const depleted = save.mineralDepletion[planet.id]?.[mineral] || 0;
       if (total - depleted > 0) return false;
     }
   }
-  return hadMinerals;
+  return true;
 }
 
 function buildSystemTooltipHtml(baseSeedInt, save, systemId, tier, dist) {
@@ -307,11 +311,18 @@ export function createStarmap(onSelectSystem) {
         viewport.appendChild(svgEl('circle', {
           cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: (radius * 1.6).toFixed(1), fill: 'none', stroke: color, 'stroke-width': 1, 'stroke-dasharray': '2 3', opacity: 0.6, class: 'marker-magnetar-arcs',
         }));
+      } else if (star?.class === 'BIN' && star.companion) {
+        // A second small dot beside the primary marker reads as "two stars"
+        // at this scale, rather than needing the full mutual-orbit animation.
+        viewport.appendChild(svgEl('circle', {
+          cx: (p.x + radius * 1.1).toFixed(1), cy: (p.y - radius * 0.4).toFixed(1), r: (radius * 0.55).toFixed(1), fill: star.companion.color,
+        }));
       }
 
       // Soft halo behind long/close-scanned stars — reads as an actual point
-      // of light rather than a flat dot, without adding another hard-edged ring.
-      if (tier === 'long' || tier === 'close') {
+      // of light rather than a flat dot, without adding another hard-edged
+      // ring. Skipped for rogue planets, which emit no light of their own.
+      if ((tier === 'long' || tier === 'close') && star?.class !== 'ROGUE') {
         viewport.appendChild(svgEl('circle', {
           cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: (radius * 2.4).toFixed(1), fill: color, opacity: 0.14,
         }));

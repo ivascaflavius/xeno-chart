@@ -1,5 +1,7 @@
 import { el } from '../components/dom.js';
-import { starPortrait, planetPortrait, lifePortrait, lockedPortrait } from '../../render/portraits.js';
+import {
+  starPortrait, planetPortrait, lifePortrait, lockedPortrait, HOT_JUPITER_COLOR,
+} from '../../render/portraits.js';
 import {
   STAR_CLASSES, PLANET_CLASSES, BIOCHEMISTRY_TYPES, LIFE_STAGES, ACHIEVEMENTS,
 } from '../../data/constants.js';
@@ -36,17 +38,24 @@ function groupByClade(lifeDiscoveries) {
   return groups;
 }
 
-function buildItems(track) {
+export function buildItems(track) {
   if (track === 'stellar') {
     return STAR_CLASSES.map((cls) => ({
       key: cls.key,
       label: cls.label,
       caption: cls.short,
-      portrait: () => starPortrait(`codex:${cls.key}`, { class: cls.key, color: cls.color, massRoll: 0.5 }),
+      portrait: () => starPortrait(`codex:${cls.key}`, cls.key === 'BIN'
+        // The real generateStar() output includes a `companion` sub-record for
+        // binaries; this preview tile isn't tied to any real system, so it
+        // synthesizes a plausible stand-in companion just for the thumbnail.
+        ? {
+          class: cls.key, color: cls.color, massRoll: 0.5, companion: { color: '#ffb066', massRoll: 0.6 },
+        }
+        : { class: cls.key, color: cls.color, massRoll: 0.5 }),
     }));
   }
   if (track === 'planetary') {
-    return PLANET_CLASSES.map((cls) => ({
+    const classItems = PLANET_CLASSES.map((cls) => ({
       key: cls.key,
       label: cls.label,
       caption: cls.label,
@@ -54,6 +63,29 @@ function buildItems(track) {
         class: cls.key, color: cls.color, minerals: {}, sizeRoll: 0.5, index: 0,
       }),
     }));
+    // Hot Jupiters and binary planets are modifiers on top of an ordinary
+    // class (a gas giant that migrated in close; any planet with a second
+    // body sharing its orbit) rather than classes of their own, so they get
+    // their own synthetic codex entries instead of a PLANET_CLASSES row.
+    return [
+      ...classItems,
+      {
+        key: 'hot-jupiter',
+        label: 'Gas giant (Hot Jupiter)',
+        caption: 'Hot Jupiter',
+        portrait: () => planetPortrait('codex:hot-jupiter', {
+          class: 'gas-giant', color: HOT_JUPITER_COLOR, minerals: {}, sizeRoll: 0.7, index: 0, hotJupiter: true,
+        }),
+      },
+      {
+        key: 'binary-planet',
+        label: 'Binary planet pair',
+        caption: 'Binary Planet',
+        portrait: () => planetPortrait('codex:binary-planet', {
+          class: 'rocky', color: '#a68a6d', minerals: {}, sizeRoll: 0.5, index: 0,
+        }),
+      },
+    ];
   }
   const items = [];
   for (const bio of BIOCHEMISTRY_TYPES) {
@@ -115,14 +147,13 @@ export function render(container, gs) {
       contentWrap.appendChild(el('div', { className: 'panel stack' }, [
         el('p', { className: 'title', text: cladeName }),
         el('p', { className: 'subtitle', text: `${members.length} ${members.length === 1 ? 'discovery' : 'discoveries'} sharing this genesis marker` }),
-        ...members.map((m) => el('div', { className: 'row' }, [
+        ...members.map((m) => el('div', { className: 'row row-tight', style: 'flex-wrap:nowrap' }, [
           el('div', {
             className: 'lineage-icon',
             html: lifePortrait(`${m.genesisMarkerId}:${m.speciesName}`, m),
           }),
-          el('span', { text: m.speciesName }),
-          el('div', { className: 'spacer' }),
-          el('span', { className: 'subtitle', text: `${m.biochemistryLabel} · ${m.stageLabel}` }),
+          el('span', { style: 'flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;', text: m.speciesName }),
+          el('span', { className: 'subtitle', style: 'flex-shrink:0', text: `${m.biochemistryLabel} · ${m.stageLabel}` }),
         ])),
       ]));
     }

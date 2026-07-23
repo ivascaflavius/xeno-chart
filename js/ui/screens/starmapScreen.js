@@ -1,78 +1,39 @@
 import { el } from '../components/dom.js';
 import { createStarmap } from '../../render/starmap.js';
-import { statusFor } from '../../systems/resources.js';
-import { RESOURCE_CAPS, LONG_RANGE_SCAN_CHARGE_COST, DISTRESS_BEACON_MAX_USES } from '../../data/constants.js';
+import { LONG_RANGE_SCAN_CHARGE_COST } from '../../data/constants.js';
 import { getSystemsInRadius } from '../../procgen/galaxy.js';
 import { effectiveSensorRange } from '../../systems/travel.js';
 import { icon } from '../components/icons.js';
 import { iconButton } from '../components/iconButton.js';
-
-function resourceChip(save, iconName, key) {
-  const amount = Math.round(save.resources[key]);
-  const cap = RESOURCE_CAPS[key];
-  const status = statusFor(save.resources[key], cap);
-  return el('div', { className: 'row resource-chip', style: 'gap:4px' }, [
-    el('span', { className: `resource-icon status-${status}`, html: icon(iconName) }),
-    el('span', { text: `${amount}/${cap}` }),
-  ]);
-}
-
-function hudChip(iconName, text) {
-  return el('div', { className: 'hud-chip' }, [
-    el('span', { className: 'resource-icon', html: icon(iconName, 14) }),
-    el('span', { text }),
-  ]);
-}
+import { statusBanners } from '../components/statusBanners.js';
+import { shipResourceBar } from '../components/cargoBar.js';
 
 export function render(container, gs) {
   const save = gs.save;
   const sys = gs.currentSystem();
 
-  const hudTop = el('div', { className: 'panel row row-tight panel-compact' }, [
+  const headerRow = el('div', { className: 'row row-tight screen-header' }, [
     iconButton({
       iconName: 'menu', label: 'Menu', iconOnly: true, onClick: () => gs.show('PAUSED'),
     }),
-    resourceChip(save, 'fuel', 'fuel'),
-    resourceChip(save, 'charge', 'charge'),
-    resourceChip(save, 'oxygen', 'oxygen'),
-    resourceChip(save, 'food', 'food'),
-    el('div', { className: 'spacer' }),
+    el('p', { className: 'title', text: 'Galactic View' }),
     iconButton({
       iconName: 'journal', label: 'Journal', iconOnly: true, onClick: () => gs.show('JOURNAL'),
     }),
   ]);
 
-  const hudDetails = el('div', { className: 'panel row row-compact panel-compact' }, [
-    hudChip('ship', save.shipName),
-    hudChip('cycle', `Cycle ${save.cycle}`),
-    hudChip('currentSystem', sys.name),
+  const galaxyIcon = el('div', { style: 'width:52px;height:52px;flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--text-dim)', html: icon('galaxy', 32) });
+  const galaxyPanel = el('div', { className: 'panel row panel-compact' }, [
+    galaxyIcon,
+    el('div', { className: 'stack', style: 'gap:2px' }, [
+      el('p', { className: 'title', text: save.galaxyName, style: 'font-size:1.25rem' }),
+      el('p', { className: 'subtitle', text: `${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'} · Cycle ${save.cycle}` }),
+      el('p', { className: 'subtitle', text: `${save.shipName} · ${sys.name}` }),
+    ]),
   ]);
-
-  const lifeSupportBanner = save.lifeSupportCountdown !== null
-    ? el('div', {
-      className: 'banner banner-warn',
-      text: `LIFE SUPPORT CRITICAL — ${save.lifeSupportCountdown} cycle${save.lifeSupportCountdown === 1 ? '' : 's'} remaining`,
-    })
-    : null;
 
   const hazardBanner = sys.hazard
     ? el('div', { className: 'banner banner-warn', text: `${sys.hazard.label} in this system.` })
-    : null;
-
-  const beaconsLeft = DISTRESS_BEACON_MAX_USES - save.distressBeaconsUsed;
-  const strandedBanner = save.stranded
-    ? el('div', { className: 'banner banner-danger row' }, [
-      el('span', { text: 'Stranded — insufficient fuel to jump.' }),
-      el('div', { className: 'spacer' }),
-      beaconsLeft <= 0
-        ? el('span', { className: 'subtitle', text: 'No beacons left' })
-        : iconButton({
-          iconName: 'distress',
-          label: `Distress Beacon (${beaconsLeft} left)`,
-          className: 'btn btn-danger',
-          onClick: () => gs.sendDistressBeacon(),
-        }),
-    ])
     : null;
 
   const starmap = createStarmap((systemId) => {
@@ -101,17 +62,11 @@ export function render(container, gs) {
   ]);
 
   container.appendChild(el('div', { className: 'screen screen-wide' }, [
-    el('p', { className: 'title', text: 'Galactic View' }),
-    el('p', {
-      className: 'subtitle',
-      style: 'margin-top:-8px',
-      text: `${save.galaxyName} · ${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'}`,
-    }),
-    hudTop,
-    hudDetails,
-    lifeSupportBanner,
+    headerRow,
+    galaxyPanel,
     hazardBanner,
-    strandedBanner,
+    ...statusBanners(gs),
+    shipResourceBar(save),
     starmap.el,
     actionRow,
   ]));

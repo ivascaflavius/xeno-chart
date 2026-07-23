@@ -10,6 +10,7 @@ import { icon } from '../components/icons.js';
 import { systemOrbitHtml } from '../../render/orbitDiagram.js';
 import { starStats } from '../../procgen/stats.js';
 import { screenHeader } from '../components/screenHeader.js';
+import { statusBanners } from '../components/statusBanners.js';
 
 function planetHasMinerals(planet) {
   return planet.minerals && Object.keys(planet.minerals).length > 0;
@@ -135,6 +136,7 @@ export function render(container, gs) {
     starPanel,
     flash ? el('div', { className: 'banner banner-info', text: flash }) : null,
     hazardPanel,
+    ...statusBanners(gs),
     cargoBar(gs.save),
     wormholePanel,
     scanRow,

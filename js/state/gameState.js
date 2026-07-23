@@ -35,7 +35,7 @@ import * as saveManager from '../save/saveManager.js';
 import { enqueueCelebration } from '../ui/components/celebration.js';
 import { hideTooltip } from '../ui/components/tooltip.js';
 import {
-  playStinger, playWarning, configure as configureAudio,
+  playStinger, playWarning, playScanCue, playJumpCue, playHarvestCue, playDistressCue, configure as configureAudio,
 } from '../audio/audioManager.js';
 import {
   vibrateForTier, vibrateWarning, configure as configureHaptics,
@@ -299,10 +299,9 @@ class GameState {
    * ever advance as a side effect of an action, so with zero actions
    * available the run never actually ended.
    *
-   * Deliberately conservative: fuel > 0 is always treated as "a jump might
-   * still be reachable" rather than exhaustively pricing every known system,
-   * since panning the starmap can reveal systems outside current scan range
-   * too — false positives here would end a run that wasn't really stuck.
+   * save.stranded itself now means "no discovered or currently-detected
+   * system is within jump range on current fuel" (see hasAnyAffordableJump in
+   * travel.js), so this only has to layer the other three conditions on top.
    */
   isDeadlocked() {
     const { save } = this;
@@ -342,7 +341,7 @@ class GameState {
     const wasCritical = this.save.lifeSupportCountdown !== null;
     this.save.cycle += 1;
     runModules(this.save, 1);
-    updateStranded(this.save);
+    updateStranded(this.save, this.baseSeedInt);
     updateLifeSupport(this.save);
     if (!this.save.gameOver) this.maybeEndInDeadlock();
     if (wasStranded && !this.save.stranded) {
@@ -360,6 +359,7 @@ class GameState {
     if (!trySpend(this.save, 'charge', LONG_RANGE_SCAN_CHARGE_COST)) {
       return { ok: false, reason: 'insufficient-charge' };
     }
+    playScanCue();
     const currentPos = currentSystem.pos;
     const range = effectiveSensorRange(this.save, currentSystem.hazard);
     const nearby = getSystemsInRadius(this.baseSeedInt, currentPos, range);
@@ -403,6 +403,7 @@ class GameState {
     if (!trySpend(this.save, 'charge', cost)) {
       return { ok: false, reason: 'insufficient-charge' };
     }
+    playScanCue();
     const prior = this.save.discoveries[systemId];
     const alreadyClose = prior?.tier === 'close';
     this.save.discoveries[systemId] = { tier: 'close' };
@@ -414,6 +415,8 @@ class GameState {
     for (const planet of sys.planets) {
       const planetDef = PLANET_CLASSES.find((c) => c.key === planet.class);
       this.recordCodex('planetary', planet.class, planetDef.weight <= 2 ? 'notable' : 'minor', planet.label);
+      if (planet.hotJupiter) this.recordCodex('planetary', 'hot-jupiter', 'notable', 'Hot Jupiter');
+      if (planet.binaryCompanion) this.recordCodex('planetary', 'binary-planet', 'notable', 'Binary Planet');
       // Biosignature presence is revealed by the scan itself (visible in Scan Detail);
       // codex/achievement crediting waits for a deliberate takeSample() action (§11, Phase 3 polish).
     }
@@ -556,6 +559,7 @@ class GameState {
     const { totalHarvested, cyclesElapsed, isGameOver } = this.harvestOneMineral(planetId, mineralKey);
 
     if (totalHarvested > 0) {
+      playHarvestCue();
       enqueueCelebration('minor', {
         title: 'Harvested',
         body: `${Math.round(totalHarvested)} ${mineralKey}${cyclesElapsed > 1 ? ` · ${cyclesElapsed} cycles` : ''}`,
@@ -606,6 +610,7 @@ class GameState {
 
     const harvestedAny = Object.keys(totals).length > 0;
     if (harvestedAny) {
+      playHarvestCue();
       const summary = Object.entries(totals).map(([k, v]) => `${Math.round(v)} ${k}`).join(', ');
       enqueueCelebration('minor', {
         title: 'Harvested',
@@ -650,8 +655,9 @@ class GameState {
     const cost = viaWormhole
       ? computeWormholeJumpCost(this.save, target.hazard)
       : computeJumpCost(this.save, distance, target.hazard);
-    const result = performJump(this.save, cost, distance, targetSystemId);
+    const result = performJump(this.save, cost, distance, targetSystemId, this.baseSeedInt);
     if (!result.ok) return result;
+    playJumpCue();
     this.addJournalEntry({
       type: 'jump',
       text: `${viaWormhole ? 'Wormhole-jumped' : 'Jumped'} to ${generateSystemName(this.baseSeedInt, targetSystemId)}`,
@@ -668,8 +674,9 @@ class GameState {
 
   sendDistressBeacon() {
     const wasStranded = this.save.stranded;
-    const result = travelSendDistressBeacon(this.save);
+    const result = travelSendDistressBeacon(this.save, this.baseSeedInt);
     if (result.ok) {
+      playDistressCue();
       if (wasStranded && !this.save.stranded) {
         this.unlockAchievement('survive-stranding');
       }

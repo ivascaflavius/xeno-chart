@@ -1,5 +1,5 @@
 import { rngFor } from './prng.js';
-import { PLANET_CLASSES, MOON_COUNT_RANGES } from '../data/constants.js';
+import { PLANET_CLASSES, MOON_COUNT_RANGES, BINARY_PLANET_CHANCE } from '../data/constants.js';
 import { rollLife } from './life.js';
 import { zoneForIndex } from './habitability.js';
 
@@ -42,6 +42,20 @@ function generateOnePlanet(baseSeedInt, systemId, index, count, star, forceMiner
   // system, so it always renders without one (see portraits.js).
   const hotJupiter = cls.key === 'gas-giant' && zone === 'inner';
 
+  // A binary planet (§7 polish) — a second body sharing this same orbital
+  // slot, mutually orbiting a barycenter between them rather than the star
+  // directly. Purely cosmetic like moons: no separate minerals/harvesting,
+  // just another world of roughly comparable size drawn from the same
+  // zone-eligible pool so it still looks physically plausible next to its host.
+  const binaryRng = rngFor(baseSeedInt, systemId, 'planet', index, 'binary');
+  let binaryCompanion = null;
+  if (binaryRng.chance(BINARY_PLANET_CHANCE)) {
+    const compCls = binaryRng.weightedPick(eligible);
+    binaryCompanion = {
+      class: compCls.key, label: compCls.label, color: compCls.color, sizeRoll: binaryRng.float(),
+    };
+  }
+
   const planet = {
     id: planetId,
     index,
@@ -52,6 +66,7 @@ function generateOnePlanet(baseSeedInt, systemId, index, count, star, forceMiner
     sizeRoll,
     moonCount,
     hotJupiter,
+    binaryCompanion,
   };
 
   planet.life = rollLife(baseSeedInt, planetId, star, cls, zone === 'habitable');
@@ -63,6 +78,10 @@ function generateOnePlanet(baseSeedInt, systemId, index, count, star, forceMiner
  * `isStartSystem` guarantees at least one mineral-bearing planet (§2a).
  */
 export function generatePlanets(baseSeedInt, systemId, star, isStartSystem) {
+  // A rogue planet occupies the "star" slot itself — it has no companion
+  // star to hold planets in orbit around it, so it never has any of its own.
+  if (star.class === 'ROGUE') return [];
+
   const countRng = rngFor(baseSeedInt, systemId, 'planetCount');
   let count = countRng.int(0, 6);
   if (isStartSystem && count < 1) count = countRng.int(1, 3);

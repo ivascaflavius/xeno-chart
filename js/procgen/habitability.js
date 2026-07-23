@@ -16,8 +16,12 @@ const ZONE_BY_STAR_CLASS = {
   G: { position: 0.4, width: 1 },
   K: { position: 0.28, width: 1 },
   M: { position: 0.15, width: 1 },
+  // Giants are vastly more luminous than their spectral color alone would
+  // suggest, pushing the habitable band well outward — further even than O/B.
+  RG: { position: 0.9, width: 2 },
+  BG: { position: 0.95, width: 2 },
 };
-const DEFAULT_ZONE = { position: 0.4, width: 1 }; // degenerate remnants (WD/NS/BH/MAG) — rare anyway, chance is already suppressed elsewhere
+const DEFAULT_ZONE = { position: 0.4, width: 1 }; // degenerate remnants (WD/NS/BH/MAG/SNR), binaries, and rogue planets — rare/moot cases, chance is already suppressed elsewhere
 
 /** Band of orbital indices (inclusive) considered habitable for a system with `count` planets around a `starClassKey` star. */
 export function habitableIndexRange(count, starClassKey) {

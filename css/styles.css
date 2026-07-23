@@ -144,23 +144,6 @@ a {
   white-space: nowrap;
 }
 
-/* ship name / cycle / current system chips in the Galactic View's details box —
-   .row-compact already gives each an equal flex-basis; this adds the icon+text
-   layout and lets long names ellipsis instead of wrapping, so the row never
-   grows past one line even on narrow phones. */
-.hud-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  overflow: hidden;
-}
-
-.hud-chip span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .spacer {
   flex: 1;
 }
@@ -478,10 +461,6 @@ button.icon-chip:hover {
 
 .btn-icon svg {
   display: block;
-}
-
-.resource-chip {
-  min-height: 28px;
 }
 
 .resource-icon {
@@ -1052,7 +1031,6 @@ label {
   75% { opacity: 1; }
 }
 
-.portrait-planet-spin,
 .orbit-spin {
   transform-box: view-box;
   animation: special-object-spin 30s linear infinite;

@@ -83,7 +83,7 @@ function renderSlot(gs, slot) {
 
 export function render(container, gs) {
   const screen = el('div', { className: 'screen' }, [
-    screenHeader('Continue Expedition', () => gs.show('MAIN_MENU')),
+    screenHeader('Saved Slots', () => gs.show('MAIN_MENU')),
   ]);
 
   for (let slot = 0; slot < SAVE_SLOT_COUNT; slot++) {
