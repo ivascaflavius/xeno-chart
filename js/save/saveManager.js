@@ -62,7 +62,7 @@ export function writeGlobal(global) {
   localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(global));
 }
 
-/** Clears every save slot and all global codex/achievement progress (§14). */
+/** Clears every save slot (and each one's own codex progress) plus global achievement progress (§14). */
 export function resetAllData() {
   for (let slot = 0; slot < SAVE_SLOT_COUNT; slot++) {
     localStorage.removeItem(keyForSlot(slot));

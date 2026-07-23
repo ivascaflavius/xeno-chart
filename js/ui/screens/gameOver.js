@@ -80,7 +80,7 @@ function renderJournalTab(gs) {
 
 function renderCodexTab(gs) {
   const unlockedAchievements = ACHIEVEMENTS.filter((a) => gs.global.achievements[a.key]).length;
-  const discoveredIn = (track) => Object.keys(gs.global.codex[track] || {}).length;
+  const discoveredIn = (track) => Object.keys(gs.save.codex[track] || {}).length;
   return el('div', { className: 'stack' }, [
     el('div', { className: 'panel stack panel-compact' }, [
       statRow('star', 'Stellar classes', `${discoveredIn('stellar')}/${buildCodexItems('stellar').length}`),

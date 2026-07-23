@@ -14,14 +14,14 @@ export function render(container, gs) {
   const save = gs.save;
   const sys = gs.currentSystem();
 
+  // Journal used to sit at the top-right of the header, but that's the exact
+  // corner celebration toasts pop up in (§11a) — the two kept covering each
+  // other. Moved down to the action row, next to Codex, instead.
   const headerRow = el('div', { className: 'row row-tight screen-header' }, [
     iconButton({
       iconName: 'menu', label: 'Menu', iconOnly: true, onClick: () => gs.show('PAUSED'),
     }),
     el('p', { className: 'title', text: 'Galactic View' }),
-    iconButton({
-      iconName: 'journal', label: 'Journal', iconOnly: true, onClick: () => gs.show('JOURNAL'),
-    }),
   ]);
 
   const galaxyIcon = el('div', { style: 'width:52px;height:52px;flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--text-dim)', html: icon('galaxy', 32) });
@@ -61,6 +61,9 @@ export function render(container, gs) {
     iconButton({ iconName: 'currentSystem', label: 'System', onClick: () => gs.show('SYSTEM_VIEW') }),
     iconButton({ iconName: 'ship', label: 'Ship', onClick: () => gs.show('SHIP_SYSTEMS') }),
     iconButton({ iconName: 'codex', label: 'Codex', onClick: () => gs.show('CODEX') }),
+    iconButton({
+      iconName: 'journal', label: 'Journal', iconOnly: true, onClick: () => gs.show('JOURNAL'),
+    }),
   ]);
 
   container.appendChild(el('div', { className: 'screen screen-wide' }, [

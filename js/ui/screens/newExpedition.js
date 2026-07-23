@@ -77,12 +77,10 @@ export function render(container, gs) {
   function renderHullColors() {
     hullWrap.innerHTML = '';
     for (const hull of HULL_COLORS) {
-      const unlocked = !hull.unlockAchievement || !!gs.global.achievements[hull.unlockAchievement];
       const swatch = el('button', {
         className: `swatch${selectedHullColor === hull.key ? ' selected' : ''}`,
         style: `background:${hull.color}`,
-        disabled: !unlocked,
-        title: unlocked ? hull.label : `${hull.label} (locked)`,
+        title: hull.label,
         onClick: () => {
           selectedHullColor = hull.key;
           hullDesc.textContent = hull.label;

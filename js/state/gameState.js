@@ -55,6 +55,7 @@ import * as gameOver from '../ui/screens/gameOver.js';
 import * as settings from '../ui/screens/settings.js';
 import * as credits from '../ui/screens/credits.js';
 import * as journal from '../ui/screens/journal.js';
+import * as achievementsScreen from '../ui/screens/achievements.js';
 
 const SCREENS = {
   MAIN_MENU: mainMenu,
@@ -71,6 +72,7 @@ const SCREENS = {
   SETTINGS: settings,
   CREDITS: credits,
   JOURNAL: journal,
+  ACHIEVEMENTS: achievementsScreen,
 };
 
 // Each entry is a short flat object (cycle, type, text, iconName, optional
@@ -96,6 +98,12 @@ function normalizeSave(save) {
   if (save.gameOverReason === undefined) {
     // The only ending that existed before this field was life support failure.
     save.gameOverReason = save.gameOver ? 'life-support' : null;
+  }
+  if (!save.codex) {
+    // Codex progress used to live in the global save (shared across every
+    // slot, so a fresh expedition looked like it had already charted things
+    // discovered in a completely different galaxy) — now scoped per-slot.
+    save.codex = { stellar: {}, planetary: {}, biological: {} };
   }
   return save;
 }
@@ -256,11 +264,11 @@ class GameState {
     return true;
   }
 
-  /** Records a first-time codex discovery (idempotent) and queues its celebration + stinger + haptic. */
+  /** Records a first-time codex discovery for this expedition (idempotent) and queues its celebration + stinger + haptic. */
   recordCodex(track, key, tier, label) {
-    if (this.global.codex[track][key]) return;
-    this.global.codex[track][key] = true;
-    this.persistGlobal();
+    if (this.save.codex[track][key]) return;
+    this.save.codex[track][key] = true;
+    this.persistSave();
     enqueueCelebration(tier, { title: label, body: `New ${track} discovery` });
     playStinger(tier);
     vibrateForTier(tier);
@@ -412,14 +420,26 @@ class GameState {
     for (const planet of sys.planets) {
       const planetDef = PLANET_CLASSES.find((c) => c.key === planet.class);
       this.recordCodex('planetary', planet.class, planetDef.weight <= 2 ? 'notable' : 'minor', planet.label);
-      if (planet.hotJupiter) this.recordCodex('planetary', 'hot-jupiter', 'notable', 'Hot Jupiter');
-      if (planet.binaryCompanion) this.recordCodex('planetary', 'binary-planet', 'notable', 'Binary Planet');
+      if (planet.hotJupiter) {
+        this.recordCodex('planetary', 'hot-jupiter', 'notable', 'Hot Jupiter');
+        this.unlockAchievement('first-hot-jupiter');
+      }
+      if (planet.binaryCompanion) {
+        this.recordCodex('planetary', 'binary-planet', 'notable', 'Binary Planet');
+        this.unlockAchievement('first-binary-planet');
+      }
+      if (planet.class === 'ocean' || planet.class === 'earth-like') this.unlockAchievement('first-habitable-planet');
+      if ((planet.moonCount || 0) >= 3) this.unlockAchievement('first-many-moons');
       // Biosignature presence is revealed by the scan itself (visible in Scan Detail);
       // codex/achievement crediting waits for a deliberate takeSample() action (§11, Phase 3 polish).
     }
 
     if (sys.star.class === 'BH') this.unlockAchievement('first-black-hole');
     if (sys.star.class === 'MAG') this.unlockAchievement('first-magnetar');
+    if (sys.star.class === 'BIN') this.unlockAchievement('first-binary-star');
+    if (sys.star.class === 'RG' || sys.star.class === 'BG') this.unlockAchievement('first-giant-star');
+    if (sys.star.class === 'SNR') this.unlockAchievement('first-supernova-remnant');
+    if (sys.star.class === 'ROGUE') this.unlockAchievement('first-rogue-planet');
 
     if (sys.wormholeTo && !alreadyClose) {
       this.unlockAchievement('first-wormhole');
@@ -655,6 +675,7 @@ class GameState {
     const result = performJump(this.save, cost, distance, targetSystemId, this.baseSeedInt);
     if (!result.ok) return result;
     playJumpCue();
+    if (viaWormhole) this.unlockAchievement('first-wormhole-travel');
     const destinationName = generateSystemName(this.baseSeedInt, targetSystemId);
     this.addJournalEntry({
       type: 'jump',

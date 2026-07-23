@@ -336,16 +336,43 @@ export const ACHIEVEMENTS = [
   {
     key: 'first-magnetar', label: 'Field Lines', description: 'Discover a magnetar.', tier: 'notable', iconName: 'magnetar',
   },
+  {
+    key: 'first-binary-star', label: 'Double Star', description: 'Discover a binary star system.', tier: 'notable', iconName: 'binaryBadge',
+  },
+  {
+    key: 'first-binary-planet', label: 'Two of a Kind', description: 'Discover a binary planet pair.', tier: 'notable', iconName: 'binaryBadge',
+  },
+  {
+    key: 'first-giant-star', label: 'Giant Among Stars', description: 'Discover a red giant or blue giant.', tier: 'notable', iconName: 'star',
+  },
+  {
+    key: 'first-supernova-remnant', label: 'Stellar Graveyard', description: 'Discover a supernova remnant.', tier: 'notable', iconName: 'remnant',
+  },
+  {
+    key: 'first-rogue-planet', label: 'Wanderer in the Dark', description: 'Discover a rogue planet.', tier: 'notable', iconName: 'planet',
+  },
+  {
+    key: 'first-hot-jupiter', label: 'Scorched Giant', description: 'Discover a hot Jupiter.', tier: 'minor', iconName: 'planet',
+  },
+  {
+    key: 'first-habitable-planet', label: 'New Eden', description: 'Discover a planet in the habitable zone.', tier: 'notable', iconName: 'planet',
+  },
+  {
+    key: 'first-many-moons', label: 'Many Moons', description: 'Discover a planet with 3 or more moons.', tier: 'minor', iconName: 'moons',
+  },
+  {
+    key: 'first-wormhole-travel', label: 'Through the Wormhole', description: 'Travel through a wormhole.', tier: 'notable', iconName: 'wormhole',
+  },
 ];
 
 // --- Ship cosmetics (§12, Phase 2) — purely visual, no mechanical effect.
-// `unlockAchievement: null` entries are available from the start.
+// All available from the start.
 export const HULL_COLORS = [
-  { key: 'default', label: 'Standard Gray', color: '#c7cbd6', unlockAchievement: null },
-  { key: 'teal', label: 'Deep Teal', color: '#5fc9d8', unlockAchievement: null },
-  { key: 'gold', label: 'Cartographer Gold', color: '#e8a34c', unlockAchievement: 'ten-systems-mapped' },
-  { key: 'verdant', label: 'Verdant Green', color: '#5fd88a', unlockAchievement: 'first-life' },
-  { key: 'violet', label: 'Wormhole Violet', color: '#b98ce0', unlockAchievement: 'first-wormhole' },
+  { key: 'default', label: 'Standard Gray', color: '#c7cbd6' },
+  { key: 'teal', label: 'Deep Teal', color: '#5fc9d8' },
+  { key: 'gold', label: 'Cartographer Gold', color: '#e8a34c' },
+  { key: 'verdant', label: 'Verdant Green', color: '#5fd88a' },
+  { key: 'violet', label: 'Wormhole Violet', color: '#b98ce0' },
 ];
 
 // --- Ship classes (§12, Phase 3) — optional starting loadout, purely a

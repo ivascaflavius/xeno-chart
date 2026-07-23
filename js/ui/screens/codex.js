@@ -3,7 +3,7 @@ import {
   starPortrait, planetPortrait, lifePortrait, lockedPortrait, HOT_JUPITER_COLOR,
 } from '../../render/portraits.js';
 import {
-  STAR_CLASSES, PLANET_CLASSES, BIOCHEMISTRY_TYPES, LIFE_STAGES, ACHIEVEMENTS,
+  STAR_CLASSES, PLANET_CLASSES, BIOCHEMISTRY_TYPES, LIFE_STAGES,
 } from '../../data/constants.js';
 import { attachHoverTooltip } from '../components/tooltip.js';
 import { icon } from '../components/icons.js';
@@ -22,9 +22,6 @@ const TABS = [
   },
   {
     key: 'lineage', iconName: 'lineage', label: 'Lineage', subtitle: 'Genesis clades traced from your discoveries.',
-  },
-  {
-    key: 'achievements', iconName: 'trophy', label: 'Achievements', subtitle: 'Milestones unlocked so far.',
   },
 ];
 
@@ -110,7 +107,7 @@ export function render(container, gs) {
   function renderGrid() {
     contentWrap.className = 'codex-grid';
     contentWrap.innerHTML = '';
-    const discovered = gs.global.codex[active];
+    const discovered = gs.save.codex[active];
     for (const item of buildItems(active)) {
       const isDiscovered = !!discovered[item.key];
       const entry = el('div', { className: 'codex-entry' }, [
@@ -159,31 +156,11 @@ export function render(container, gs) {
     }
   }
 
-  function renderAchievements() {
-    contentWrap.className = 'stack';
-    contentWrap.innerHTML = '';
-    for (const achievement of ACHIEVEMENTS) {
-      const unlocked = !!gs.global.achievements[achievement.key];
-      contentWrap.appendChild(el('div', { className: 'panel row' }, [
-        el('span', {
-          className: `icon-chip status-${unlocked ? 'green' : 'red'}`,
-          html: unlocked ? icon(achievement.iconName, 16) : '?',
-        }),
-        el('div', { className: 'stack' }, [
-          el('span', { text: unlocked ? achievement.label : '???' }),
-          el('span', { className: 'subtitle', text: unlocked ? achievement.description : 'Not yet unlocked' }),
-        ]),
-      ]));
-    }
-  }
-
   const tabSubtitle = el('p', { className: 'subtitle' });
 
   function renderContent() {
     tabSubtitle.textContent = TABS.find((t) => t.key === active)?.subtitle || '';
-    if (active === 'achievements') {
-      renderAchievements();
-    } else if (active === 'lineage') {
+    if (active === 'lineage') {
       renderLineage();
     } else {
       renderGrid();

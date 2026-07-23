@@ -65,6 +65,24 @@ const TABS = [
         body: 'Planets without any minerals are grayed out; fully-harvested planets are marked so you know at a '
           + 'glance which are still worth a visit.',
       },
+      {
+        heading: 'Planet Variety',
+        iconName: 'planet',
+        body: 'Beyond the basics (rocky, molten, ice, ocean, gas giant, barren) there is real variety to find: '
+          + 'earth-analogues and super-Earths in the habitable band, ice giants and dwarf planets out in the cold, '
+          + 'iron planets close to the star, hot Jupiters — gas giants baked reddish by orbiting too close to ever '
+          + 'keep a ring — and binary planets, a pair of worlds mutually orbiting a shared point between them '
+          + 'instead of one orbiting the other.',
+      },
+      {
+        heading: 'Star Variety',
+        iconName: 'star',
+        body: 'Most stars are ordinary main-sequence types, but long-range scanning enough systems turns up rarer '
+          + 'ones: red and blue giants, binary systems (two stars orbiting each other, shown with a two-star '
+          + 'icon), supernova remnants that can still have planets orbiting them, and rogue planets — dark, '
+          + "starless bodies that still orbit the galaxy's center directly and so show up in the starmap like any "
+          + 'other system.',
+      },
     ],
   },
   {
@@ -148,11 +166,22 @@ const TABS = [
           + 'charge.',
       },
       {
-        heading: 'Stranded',
+        heading: 'Early Warnings',
+        iconName: 'info',
+        body: 'Before things get critical, a low-key banner appears on the Galactic, System, and Planetary views '
+          + 'the moment any resource dips below about a third of its capacity — naming the exact mineral and '
+          + 'module that would top it back up (e.g. "mine ice to keep the Electrolysis Unit topped up"). It is '
+          + 'meant to give you time to react while mining a planet, not just after you have already run dry.',
+      },
+      {
+        heading: 'Stranded & Beacons',
         iconName: 'distress',
-        body: 'Running out of fuel leaves you stranded — a distress beacon grants emergency fuel, usable up to '
-          + 'three times per expedition. If you are ever stranded with no beacons left, and nothing left to scan '
-          + 'or harvest either, the expedition ends there — drifting with no way to call for help again.',
+        body: 'Running out of fuel leaves you stranded — able to scan and harvest, just unable to jump — rather '
+          + 'than ending the run outright. A distress beacon grants emergency fuel and can be used up to three '
+          + 'times per expedition, so save at least one for when you are truly out of options rather than using '
+          + 'all three the moment you first run low. If you are ever stranded with no beacons left, and nothing '
+          + 'left to scan or harvest either, the expedition ends there — drifting with no way to call for help '
+          + 'again.',
       },
     ],
   },
@@ -172,8 +201,10 @@ const TABS = [
       {
         heading: 'Wormholes',
         iconName: 'wormhole',
-        body: 'Some systems hide a wormhole — a cheap, flat-cost shortcut to a distant system, revealed once you '
-          + 'close-range scan it.',
+        body: 'A rare handful of systems hide a wormhole — a cheap, flat-cost shortcut to a distant system, '
+          + 'revealed only once you close-range scan that exact system. They are genuinely uncommon, so do not '
+          + 'expect to stumble onto one in every expedition — wide, thorough scanning is what turns them up, not '
+          + 'luck along a single travel path.',
       },
     ],
   },
@@ -190,10 +221,28 @@ const TABS = [
           + 'crediting the Codex/achievements — requires a deliberate Take Sample action from the Planetary View.',
       },
       {
+        heading: 'Biochemistry',
+        iconName: 'dna',
+        body: "Life is not always carbon-DNA like Earth's: carbon-RNA, silicon-based, mirror-chirality, and "
+          + "wholly invented polymer chemistries are all possible, each rarer than the last. The Codex's "
+          + 'Biological tab tracks every biochemistry/stage combination you have identified.',
+      },
+      {
+        heading: 'Life Stages',
+        iconName: 'sample',
+        body: 'Every biosignature is one of four stages, from most to least common: microbial, simple '
+          + 'multicellular, complex organisms, and intelligent. Complex and intelligent life only ever appears on '
+          + 'a planet with surface water (ocean, earth-analogue, or ice worlds) — anywhere drier tops out at '
+          + 'simple/microbial life. Intelligent life in particular is a rare, landmark find, not something to '
+          + 'expect on a routine sample.',
+      },
+      {
         heading: 'First Contact',
         iconName: 'sample',
-        body: 'Rare biosignatures turn out to be intelligent. Sampling one triggers first contact, either peaceful '
-          + 'or, occasionally, hostile — a hostile encounter disables one random ship module for a few cycles.',
+        body: 'Sampling intelligent life triggers first contact. Its tech tier (pre-industrial through '
+          + 'post-industrial, or a "silent" civilization detectable only by signal) is revealed at the same time, '
+          + 'and the encounter itself resolves as either peaceful or, occasionally, hostile — a hostile encounter '
+          + 'disables one random ship module for a few cycles, same as any other module failure.',
       },
     ],
   },

@@ -79,6 +79,9 @@ export function render(container, gs) {
         onClick: () => gs.show('SLOT_PICKER'),
       }),
       iconButton({
+        iconName: 'trophy', label: 'Achievements', className: 'btn btn-block', onClick: () => gs.show('ACHIEVEMENTS'),
+      }),
+      iconButton({
         iconName: 'help', label: 'Help', className: 'btn btn-block', onClick: () => gs.show('HOW_TO_FLY'),
       }),
       iconButton({

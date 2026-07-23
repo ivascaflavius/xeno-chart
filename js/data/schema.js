@@ -59,6 +59,14 @@ export function createEmptySave() {
     // expedition, shown in the Journal screen. systemId/planetId (when present) let the
     // Journal screen look up and show the real star/planet portrait next to the entry.
     journal: [],
+    // track -> { key: true } — discovered/locked state for the Codex (§11), scoped to this
+    // save slot rather than global: each expedition charts its own galaxy, so what you've
+    // found in one shouldn't already show as discovered in another.
+    codex: {
+      stellar: {},
+      planetary: {},
+      biological: {},
+    },
   };
 }
 
@@ -70,11 +78,6 @@ function generateDefaultCommanderName() {
 export function createEmptyGlobal() {
   return {
     version: GLOBAL_VERSION,
-    codex: {
-      stellar: {},
-      planetary: {},
-      biological: {},
-    },
     achievements: {},
     commanderName: generateDefaultCommanderName(),
     audio: { enabled: true, volume: 0.5 },
@@ -110,6 +113,5 @@ export function validateGlobal(obj) {
   if (!isPlainObject(obj)) return false;
   if (typeof obj.version !== 'number') return false;
   if (obj.version !== GLOBAL_VERSION) return false;
-  if (!isPlainObject(obj.codex)) return false;
   return true;
 }

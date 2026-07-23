@@ -64,6 +64,9 @@ const PATHS = {
   brain: '<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-1 5.8A3.5 3.5 0 0 0 8 18a3 3 0 0 0 3-3V6a2 2 0 0 0-2-2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 1 5.8A3.5 3.5 0 0 1 16 18a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
   blackhole: '<circle cx="12" cy="12" r="4" fill="currentColor"/><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="1.6"/><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5" transform="rotate(35 12 12)"/>',
   magnetar: '<circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 12C8 8 8 4 12 2M12 12C16 8 16 4 12 2M12 12C8 16 8 20 12 22M12 12C16 16 16 20 12 22" fill="none" stroke="currentColor" stroke-width="1.3"/>',
+  binaryBadge: '<circle cx="9" cy="12" r="7" fill="currentColor" opacity="0.85"/><circle cx="15" cy="12" r="7" fill="currentColor" opacity="0.45"/>',
+  moons: '<circle cx="12" cy="13" r="5" fill="currentColor"/><circle cx="4" cy="7" r="1.6" fill="currentColor"/><circle cx="20" cy="8" r="1.3" fill="currentColor"/><circle cx="19" cy="18" r="1.4" fill="currentColor"/>',
+  remnant: '<circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.65"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 3" opacity="0.7"/><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="1 4" opacity="0.4"/>',
 };
 
 export function icon(name, size = 18) {
