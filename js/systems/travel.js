@@ -6,6 +6,8 @@ import {
   WORMHOLE_FLAT_FUEL_COST,
   RELAXED_PENALTY,
   SHIP_CLASSES,
+  DISTRESS_BEACON_MAX_USES,
+  DISTRESS_BEACON_FUEL_AMOUNT,
 } from '../data/constants.js';
 import { getAmount, addAmount, updateLifeSupport } from './resources.js';
 import { runModules } from './modules.js';
@@ -92,12 +94,12 @@ export function performJump(save, cost, distanceLy, targetSystemId) {
   return { ok: true };
 }
 
-/** One-time emergency fuel top-up while stranded (§5) — not a resource-costed action. */
+/** Emergency fuel top-up while stranded (§5) — not a resource-costed action, usable up to DISTRESS_BEACON_MAX_USES times per expedition. */
 export function sendDistressBeacon(save) {
-  if (save.distressBeaconUsed) return { ok: false, reason: 'already-used' };
+  if (save.distressBeaconsUsed >= DISTRESS_BEACON_MAX_USES) return { ok: false, reason: 'no-beacons-left' };
   if (!save.stranded) return { ok: false, reason: 'not-stranded' };
-  addAmount(save, 'fuel', 10);
-  save.distressBeaconUsed = true;
+  addAmount(save, 'fuel', DISTRESS_BEACON_FUEL_AMOUNT);
+  save.distressBeaconsUsed += 1;
   updateStranded(save);
   return { ok: true };
 }

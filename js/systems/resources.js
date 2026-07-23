@@ -54,6 +54,7 @@ export function updateLifeSupport(save) {
       save.lifeSupportCountdown = null;
     } else {
       save.gameOver = true;
+      save.gameOverReason = 'life-support';
     }
   }
 }

@@ -25,10 +25,12 @@ export function createEmptySave() {
     },
     sensorRange: 0,
     stranded: false,
-    distressBeaconUsed: false,
+    distressBeaconsUsed: 0,
     lifeSupportCountdown: null,
     degradedLevel: 0,
     gameOver: false,
+    // null | 'life-support' | 'deadlock' — which ending applies once gameOver is true.
+    gameOverReason: null,
     // { key, cyclesLeft } | null — set by a hostile intelligent-life encounter (§3, Phase 3)
     moduleDisabled: null,
     stats: {

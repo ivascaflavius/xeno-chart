@@ -205,9 +205,10 @@ responsive-webapp conventions in §8). Use real `<button>` elements throughout.
     deferred — not required for v1/v2, see §15c note.
 11. **Credits** — see §9a
 12. **Pause menu** — Resume / How to fly / Settings / Main menu
-13. **Expedition summary / game over** — shown on life-support failure; stats for
-    the run (systems visited, life found, distance traveled, seed code), option
-    to start a new expedition
+13. **Expedition summary / game over** — shown on life-support failure or on
+    being irrecoverably stranded (§5, §16b), with a distinct title/message per
+    ending; stats for the run (systems visited, life found, distance
+    traveled, seed code), option to start a new expedition
 
 ### 9a. Credits screen content
 
@@ -252,10 +253,26 @@ cost regardless of the real-space distance they span.
 **Life-support failure**: when the oxygen or food reserve buffer hits zero, start
 a visible countdown (a fixed number of cycles, escalating warning banners). If it
 reaches zero before the reserve is replenished, trigger the expedition summary /
-game-over screen. This is the only game-over condition. Running out of fuel is a
-**setback**, not a failure: the ship is "stranded" (reduced capability, can still
-scan passively) until refueled or a distress-beacon action is used — do not make
-this end the game.
+game-over screen (reason: `life-support`).
+
+**Stranding & the distress beacon**: running out of fuel is first a **setback**,
+not an immediate failure — the ship is "stranded" (can still scan/harvest, just
+can't jump) until refueled. A distress beacon grants emergency fuel and can be
+used up to `DISTRESS_BEACON_MAX_USES` (3) times per expedition, tracked as
+`save.distressBeaconsUsed` (a counter, not a one-time flag).
+
+**Deadlock ending** (§16b): being stranded with beacons exhausted
+used to be a silent, permanent freeze if every other action also happened to be
+unavailable at once (nothing new in scan range or no charge to scan with, no
+harvestable minerals left in the current system) — cycles, and with them life
+support, only ever advance as a side effect of an action, so with zero actions
+possible the run never actually resolved. `gameState.js`'s `isDeadlocked()` /
+`maybeEndInDeadlock()` detect exactly that combination and trigger the
+game-over screen instead (reason: `deadlock`), checked after every action that
+could produce it (scan, harvest, jump, distress beacon) and once on loading an
+already-stuck save. The check deliberately treats `fuel > 0` as "a jump might
+still be reachable" without pricing every known system, to avoid a false
+positive ending a run that wasn't really stuck.
 
 ## 6. Scanning & fog of war
 
@@ -658,6 +675,10 @@ build; each is documented in more detail at its relevant section above:
   screen transitions (a stray hover tooltip could survive a screen change)
 - An **"Experimental build"** notice on the main menu, since the game is not
   yet a finished/1.0 release (§15b)
+- **Multiple distress beacons** (up to `DISTRESS_BEACON_MAX_USES`, 3, per
+  expedition) and a **deadlock ending**: being stranded with beacons
+  exhausted and no scan/harvest options left now resolves into its own
+  game-over screen instead of silently freezing with no legal action left (§5)
 
 ### 16a. Phase 1 definition of done
 

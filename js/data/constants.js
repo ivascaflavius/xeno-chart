@@ -15,6 +15,12 @@ export const WORMHOLE_FLAT_FUEL_COST = 4;
 export const LONG_RANGE_SCAN_CHARGE_COST = 3;
 export const CLOSE_RANGE_SCAN_CHARGE_COST = 10;
 
+// A stranded ship can call for emergency fuel up to this many times per
+// expedition (§5) — beyond that, being stranded with no scan/harvest options
+// left either is a genuine dead end (see gameState.js's isDeadlocked()).
+export const DISTRESS_BEACON_MAX_USES = 3;
+export const DISTRESS_BEACON_FUEL_AMOUNT = 10;
+
 export const RESOURCE_CAPS = {
   fuel: 40,
   charge: 40,

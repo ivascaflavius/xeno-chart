@@ -15,6 +15,7 @@ import {
   ACHIEVEMENTS,
   MODULES,
   HOSTILE_MODULE_DISABLE_CYCLES,
+  DISTRESS_BEACON_MAX_USES,
 } from '../data/constants.js';
 import {
   trySpend, addAmount, getAmount, capFor, updateLifeSupport,
@@ -89,6 +90,15 @@ function normalizeSave(save) {
   if (!save.sampledPlanets) save.sampledPlanets = {};
   if (!save.journal) save.journal = [];
   if (save.moduleDisabled === undefined) save.moduleDisabled = null;
+  if (save.distressBeaconsUsed === undefined) {
+    // Older saves only ever had one beacon, tracked as a boolean.
+    save.distressBeaconsUsed = save.distressBeaconUsed ? 1 : 0;
+    delete save.distressBeaconUsed;
+  }
+  if (save.gameOverReason === undefined) {
+    // The only ending that existed before this field was life support failure.
+    save.gameOverReason = save.gameOver ? 'life-support' : null;
+  }
   return save;
 }
 
@@ -213,7 +223,11 @@ class GameState {
     this.save = normalizeSave(save);
     this.currentSlot = slot;
     this.baseSeedInt = seedToInt(save.seed);
-    this.show('STARMAP');
+    // Covers a save closed while already deadlocked, before anything else
+    // triggered the check — otherwise resuming would still just show a stuck
+    // Galactic View with no explanation.
+    if (this.maybeEndInDeadlock()) this.persistSave();
+    this.show(this.save.gameOver ? 'GAME_OVER' : 'STARMAP');
     return true;
   }
 
@@ -276,6 +290,52 @@ class GameState {
     }
   }
 
+  /**
+   * True once every player action is genuinely impossible: stranded with no
+   * fuel, nothing new to scan (or no charge to scan with), nothing left to
+   * harvest in the current system, and no distress beacon left to call for
+   * help. Without this, that combination was a silent permanent freeze —
+   * cycles (and with them life support, the only other failure state) only
+   * ever advance as a side effect of an action, so with zero actions
+   * available the run never actually ended.
+   *
+   * Deliberately conservative: fuel > 0 is always treated as "a jump might
+   * still be reachable" rather than exhaustively pricing every known system,
+   * since panning the starmap can reveal systems outside current scan range
+   * too — false positives here would end a run that wasn't really stuck.
+   */
+  isDeadlocked() {
+    const { save } = this;
+    if (save.gameOver || !save.stranded) return false;
+
+    const sys = this.currentSystem();
+
+    const range = effectiveSensorRange(save, sys.hazard);
+    const nearby = getSystemsInRadius(this.baseSeedInt, sys.pos, range);
+    const hasNewToReveal = nearby.some((stub) => !save.discoveries[stub.id]);
+    const canUsefullyScan = hasNewToReveal && save.resources.charge >= LONG_RANGE_SCAN_CHARGE_COST;
+
+    const canHarvestHere = sys.planets.some((planet) => Object.entries(planet.minerals).some(([mineral, total]) => {
+      const depleted = save.mineralDepletion[planet.id]?.[mineral] || 0;
+      const remaining = total - depleted;
+      return remaining > 0 && capFor(mineral) - getAmount(save, mineral) > 0;
+    }));
+
+    const canUseBeacon = save.distressBeaconsUsed < DISTRESS_BEACON_MAX_USES;
+
+    return !canUsefullyScan && !canHarvestHere && !canUseBeacon;
+  }
+
+  /** Ends the run as a deadlock if isDeadlocked() just became true. Returns whether it did. */
+  maybeEndInDeadlock() {
+    if (this.isDeadlocked()) {
+      this.save.gameOver = true;
+      this.save.gameOverReason = 'deadlock';
+      return true;
+    }
+    return false;
+  }
+
   /** Runs module processing + life-support check for one elapsed cycle. Returns true if this triggered game over. */
   advanceCycle() {
     const wasStranded = this.save.stranded;
@@ -284,6 +344,7 @@ class GameState {
     runModules(this.save, 1);
     updateStranded(this.save);
     updateLifeSupport(this.save);
+    if (!this.save.gameOver) this.maybeEndInDeadlock();
     if (wasStranded && !this.save.stranded) {
       this.unlockAchievement('survive-stranding');
     }
@@ -599,6 +660,7 @@ class GameState {
     });
     this.selectedSystemId = null;
     this.viaWormhole = false;
+    if (!this.save.gameOver) this.maybeEndInDeadlock();
     this.persistSave();
     this.show(this.save.gameOver ? 'GAME_OVER' : 'STARMAP');
     return result;
@@ -616,8 +678,13 @@ class GameState {
         text: 'Sent a distress beacon — received emergency fuel',
         iconName: 'distress',
       });
+      const isGameOver = this.maybeEndInDeadlock();
       this.persistSave();
-      this.refresh();
+      if (isGameOver) {
+        this.show('GAME_OVER');
+      } else {
+        this.refresh();
+      }
     }
     return result;
   }

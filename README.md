@@ -31,8 +31,10 @@ hazards, achievements, intelligent life, lineage web, ship classes) plus an
 ongoing round of post-launch polish: a deliberate "take a sample" step for
 biosignatures, animated orbit diagrams for systems/moons, a star-class-driven
 habitable zone that actually shapes which planet types can appear where,
-physical stats for stars and planets, and procedural naming for systems,
-planets, and ships. See [specs/specs.md](specs/specs.md) for the full design,
+physical stats for stars and planets, procedural naming for systems, planets,
+and ships, and a proper deadlock ending (being stranded with no beacons,
+scans, or harvests left now ends the run instead of freezing). See
+[specs/specs.md](specs/specs.md) for the full design,
 build-phase plan, and a running log of what's shipped beyond the original
 phase list (§16b).
 

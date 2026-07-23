@@ -1,7 +1,7 @@
 import { el } from '../components/dom.js';
 import { createStarmap } from '../../render/starmap.js';
 import { statusFor } from '../../systems/resources.js';
-import { RESOURCE_CAPS, LONG_RANGE_SCAN_CHARGE_COST } from '../../data/constants.js';
+import { RESOURCE_CAPS, LONG_RANGE_SCAN_CHARGE_COST, DISTRESS_BEACON_MAX_USES } from '../../data/constants.js';
 import { getSystemsInRadius } from '../../procgen/galaxy.js';
 import { effectiveSensorRange } from '../../systems/travel.js';
 import { icon } from '../components/icons.js';
@@ -59,15 +59,16 @@ export function render(container, gs) {
     ? el('div', { className: 'banner banner-warn', text: `${sys.hazard.label} in this system.` })
     : null;
 
+  const beaconsLeft = DISTRESS_BEACON_MAX_USES - save.distressBeaconsUsed;
   const strandedBanner = save.stranded
     ? el('div', { className: 'banner banner-danger row' }, [
       el('span', { text: 'Stranded — insufficient fuel to jump.' }),
       el('div', { className: 'spacer' }),
-      save.distressBeaconUsed
-        ? el('span', { className: 'subtitle', text: 'Beacon used' })
+      beaconsLeft <= 0
+        ? el('span', { className: 'subtitle', text: 'No beacons left' })
         : iconButton({
           iconName: 'distress',
-          label: 'Distress Beacon',
+          label: `Distress Beacon (${beaconsLeft} left)`,
           className: 'btn btn-danger',
           onClick: () => gs.sendDistressBeacon(),
         }),

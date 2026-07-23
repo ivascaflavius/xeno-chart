@@ -147,6 +147,13 @@ const TABS = [
           + 'them: ore into fuel, ice into oxygen and hydrogen, water (with oxygen) into food, and fuel into '
           + 'charge.',
       },
+      {
+        heading: 'Stranded',
+        iconName: 'distress',
+        body: 'Running out of fuel leaves you stranded — a distress beacon grants emergency fuel, usable up to '
+          + 'three times per expedition. If you are ever stranded with no beacons left, and nothing left to scan '
+          + 'or harvest either, the expedition ends there — drifting with no way to call for help again.',
+      },
     ],
   },
   {
