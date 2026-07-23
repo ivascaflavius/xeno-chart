@@ -3,6 +3,16 @@ import { iconButton } from '../components/iconButton.js';
 import { icon } from '../components/icons.js';
 import { mainMenuSceneHtml } from '../../render/mainMenuScene.js';
 
+// Same ringed-planet mark as favicon.svg, inlined so the title reads as a
+// small logo lockup instead of bare text — kept in sync by hand since
+// favicon.svg itself has to stay a standalone file for the browser tab icon.
+const BRAND_MARK_SVG = `
+  <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="16" cy="17" r="8" fill="#e8a34c"/>
+    <ellipse cx="16" cy="17" rx="14" ry="4" fill="none" stroke="#d9d9e8" stroke-width="2.5" transform="rotate(-20 16 17)"/>
+  </svg>
+`;
+
 export function render(container, gs) {
   const hasSave = gs.hasAnySave();
   const commanderName = gs.global.commanderName?.trim();
@@ -24,7 +34,10 @@ export function render(container, gs) {
   container.appendChild(el('div', { className: 'screen screen-menu' }, [
     el('div', { className: 'menu-scene', html: mainMenuSceneHtml() }),
     el('div', { className: 'stack menu-title-block' }, [
-      el('p', { className: 'title', text: 'Xeno-Chart' }),
+      el('div', { className: 'row row-tight', style: 'justify-content:center; align-items:center' }, [
+        el('span', { style: 'width:30px; height:30px; flex-shrink:0', html: BRAND_MARK_SVG }),
+        el('p', { className: 'title', text: 'Xeno-Chart' }),
+      ]),
       el('p', { className: 'subtitle', text: 'Scan the dark. Chart the unknown.' }),
       el('p', { className: 'subtitle', style: 'color:var(--warn)', text: 'Experimental build — still in active development.' }),
       welcomeRow,

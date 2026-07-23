@@ -67,11 +67,12 @@ export function render(container, gs) {
     })), null, { showLabels: true }),
   ]);
 
-  const schematicPanel = el('div', { className: 'panel stack panel-compact', style: 'align-items:center' }, [
-    el('div', { html: shipSchematicHtml(moduleStatuses, hullColor.color) }),
+  const schematicPanel = el('div', { className: 'panel stack panel-compact diagram-panel' }, [
+    el('p', { className: 'subtitle diagram-caption', text: 'Ship schematic' }),
+    el('div', { className: 'diagram-fill', html: shipSchematicHtml(moduleStatuses, hullColor.color) }),
   ]);
 
-  container.appendChild(el('div', { className: 'screen' }, [
+  container.appendChild(el('div', { className: 'screen screen-wide' }, [
     screenHeader('Ship Systems', () => gs.show('STARMAP')),
     shipPanel,
     resourcePanel,

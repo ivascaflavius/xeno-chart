@@ -64,6 +64,23 @@ a {
   margin: 0 auto;
 }
 
+/* Tablet and up: menu/text screens (Main Menu, Pause, Settings, New
+   Expedition, Help, ...) cap at a narrow reading/button-list width instead of
+   stretching full-bleed — a single column of full-width buttons or paragraphs
+   at 1024px reads badly. Screens that actually use the extra space (starmap,
+   system/planetary view, ship dashboard, codex, journal) opt into
+   .screen-wide instead. Both stay centered, so on very wide desktops the
+   background fills the gutters rather than the UI stretching sideways. */
+@media (min-width: 768px) {
+  .screen {
+    max-width: 480px;
+  }
+
+  .screen.screen-wide {
+    max-width: 1024px;
+  }
+}
+
 .screen-scroll {
   overflow-y: auto;
 }
@@ -188,6 +205,58 @@ a {
 
 .panel-compact {
   padding: 8px 10px;
+}
+
+/* Tabbed screens (Codex, Journal, Help) keep their title/back button and tab
+   bar pinned in place; only the content below actually scrolls, instead of
+   the whole .screen scrolling and carrying the header off-screen with it. */
+.screen.screen-pinned-header {
+  overflow-y: hidden;
+}
+
+.screen-scroll-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Bottom diagram box (orbit view, ship schematic) fills whatever vertical
+   space is left on the screen, the same way the Galactic View starmap
+   already does — grows when there's room instead of sitting at a small fixed
+   size. The SVG inside keeps width:100%/height:100% with its own viewBox, so
+   it scales up and stays centered no matter what shape this box ends up. */
+.diagram-panel {
+  flex: 1;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diagram-caption {
+  text-align: center;
+}
+
+.diagram-fill {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* The generated portrait svgs (planetPortrait etc.) have no width/height of
+   their own, so left alone a browser sizes them from their intrinsic
+   (square) viewBox ratio and ignores a non-square parent's actual height,
+   overflowing it. Forcing both dimensions here makes the svg really fill
+   whatever box it's given, and its own viewBox + default preserveAspectRatio
+   ("meet") then letterboxes/centers the circle inside that box without
+   ever stretching it into an oval. */
+.diagram-fill svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* How to Fly: one panel holding every section, divider lines instead of a

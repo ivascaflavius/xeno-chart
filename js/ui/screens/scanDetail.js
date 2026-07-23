@@ -164,16 +164,17 @@ export function render(container, gs) {
       ]))
     : null;
 
-  const orbitView = el('div', { style: 'position:relative; width:160px; height:160px; margin:0 auto' }, [
-    el('div', { style: 'position:absolute; left:40px; top:40px; width:80px; height:80px', html: planetPortrait(planet.id, planet) }),
-    el('div', { html: moonOrbitOverlayHtml(moonCount) }),
+  const orbitFill = el('div', { className: 'diagram-fill' }, [
+    el('div', { style: 'position:absolute; left:25%; top:25%; width:50%; height:50%', html: planetPortrait(planet.id, planet, { decorate: false }) }),
+    el('div', { html: moonOrbitOverlayHtml(planet.id, moonCount) }),
   ]);
 
-  const orbitPanel = el('div', { className: 'panel stack panel-compact', style: 'align-items:center' }, [
-    orbitView,
+  const orbitPanel = el('div', { className: 'panel stack panel-compact diagram-panel' }, [
+    el('p', { className: 'subtitle diagram-caption', text: moonCount ? 'Moon orbits' : 'Orbital view' }),
+    orbitFill,
   ]);
 
-  container.appendChild(el('div', { className: 'screen' }, [
+  container.appendChild(el('div', { className: 'screen screen-wide' }, [
     screenHeader('Planetary View', () => gs.show('SYSTEM_VIEW')),
     planetPanel,
     flash ? el('div', { className: 'banner banner-info', text: flash }) : null,

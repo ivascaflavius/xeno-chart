@@ -107,8 +107,9 @@ export function render(container, gs) {
   }
 
   const orbitPanel = scanned
-    ? el('div', { className: 'panel stack panel-compact', style: 'align-items:center' }, [
-      el('div', { html: systemOrbitHtml(sys) }),
+    ? el('div', { className: 'panel stack panel-compact diagram-panel' }, [
+      el('p', { className: 'subtitle diagram-caption', text: 'Orbital view' }),
+      el('div', { className: 'diagram-fill', html: systemOrbitHtml(sys) }),
     ])
     : null;
 
@@ -129,7 +130,7 @@ export function render(container, gs) {
     ])
     : null;
 
-  container.appendChild(el('div', { className: 'screen' }, [
+  container.appendChild(el('div', { className: 'screen screen-wide' }, [
     screenHeader('System View', () => gs.show('STARMAP')),
     starPanel,
     flash ? el('div', { className: 'banner banner-info', text: flash }) : null,

@@ -212,16 +212,20 @@ function mineralDecorator() {
   `;
 }
 
-export function planetPortrait(id, planet) {
-  return cached(`planet:${id}`, () => {
+export function planetPortrait(id, planet, { decorate = true } = {}) {
+  return cached(`planet:${id}:${decorate ? 'd' : 'plain'}`, () => {
     const radius = 22 + planet.sizeRoll * 14;
     // Ring variety (§7 polish) — not every gas giant is Saturn; a "hot
     // Jupiter" (the innermost gas giant in a system, see planets.js) never
     // gets one at all — migrated in too close/tidally battered to keep a
     // ring system — and gets a warm glow instead of the cooler default look.
     const hasRing = (planet.class === 'gas-giant' || planet.class === 'ice-giant') && !planet.hotJupiter && planet.sizeRoll > 0.4;
+    // rx capped at 1.3x radius (not the more dramatic 1.7x a real ring-plane
+    // deserves) so the tilted ellipse's bounding box always stays inside the
+    // 0-100 viewBox even at max planet size — anything larger got silently
+    // cut off at the SVG's edge instead of closing into a full ellipse.
     const ring = hasRing
-      ? `<ellipse cx="50" cy="50" rx="${(radius * 1.7).toFixed(1)}" ry="${(radius * 0.4).toFixed(1)}" fill="none" stroke="${shade(planet.color, 0.3)}" stroke-width="2" opacity="0.6" transform="rotate(-15 50 50)"/>`
+      ? `<ellipse cx="50" cy="50" rx="${(radius * 1.3).toFixed(1)}" ry="${(radius * 0.4).toFixed(1)}" fill="none" stroke="${shade(planet.color, 0.3)}" stroke-width="2" opacity="0.6" transform="rotate(-15 50 50)"/>`
       : '';
     const hotJupiterGlow = planet.hotJupiter
       ? `<circle cx="50" cy="50" r="${(radius * 1.6).toFixed(1)}" fill="#ff7a45" opacity="0.16"/>`
@@ -276,8 +280,8 @@ export function planetPortrait(id, planet) {
     return `
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         ${body}
-        ${hasMinerals ? mineralDecorator() : ''}
-        ${planet.life ? dnaDecorator() : ''}
+        ${decorate && hasMinerals ? mineralDecorator() : ''}
+        ${decorate && planet.life ? dnaDecorator() : ''}
       </svg>
     `;
   });

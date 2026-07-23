@@ -88,9 +88,11 @@ export function render(container, gs) {
   renderTabs();
   renderList();
 
-  container.appendChild(el('div', { className: 'screen' }, [
+  container.appendChild(el('div', { className: 'screen screen-wide screen-pinned-header' }, [
     screenHeader('Journal', () => gs.back()),
     tabRow,
-    listWrap,
+    el('div', { className: 'screen-scroll-body' }, [
+      listWrap,
+    ]),
   ]));
 }

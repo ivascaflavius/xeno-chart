@@ -232,10 +232,12 @@ export function render(container, gs) {
   renderTabs();
   renderContent();
 
-  container.appendChild(el('div', { className: 'screen' }, [
+  container.appendChild(el('div', { className: 'screen screen-pinned-header' }, [
     screenHeader('Help', () => gs.back()),
     tabRow,
-    tabSubtitle,
-    contentWrap,
+    el('div', { className: 'screen-scroll-body' }, [
+      tabSubtitle,
+      contentWrap,
+    ]),
   ]));
 }

@@ -10,6 +10,7 @@
 // rotation just becomes the animation's starting point.
 
 import { habitableIndexRange } from '../procgen/habitability.js';
+import { Rng, seedToInt } from '../procgen/prng.js';
 
 const GOLDEN_ANGLE_DEG = 137.508;
 
@@ -18,13 +19,27 @@ function hasMinerals(planet) {
 }
 
 function orbitingMarker({
-  center, radius, initialDeg, dotR, fill, opacity = 1, stroke = '', durationS, reverse,
+  center, radius, initialDeg, dotR, fill, opacity = 1, stroke = '', durationS, reverse, shaded = false,
 }) {
   const strokeAttr = stroke ? `stroke="${stroke}" stroke-width="0.6"` : '';
+  const cx = (center + radius).toFixed(1);
+  const cy = center.toFixed(1);
+  // A moon should read as a small shaded sphere like the planet it orbits,
+  // not a flat dot — a highlight (light source) and shadow circle offset to
+  // opposite corners of the base fill fake that at a size too small for real
+  // crater texture, with no <defs>/gradients (per this file's no-shared-ids
+  // convention — the same markup can be duplicated in the DOM at once).
+  const body = shaded
+    ? `
+      <circle cx="${cx}" cy="${cy}" r="${dotR.toFixed(1)}" fill="${fill}" ${strokeAttr}/>
+      <circle cx="${(center + radius - dotR * 0.3).toFixed(1)}" cy="${(center - dotR * 0.3).toFixed(1)}" r="${(dotR * 0.55).toFixed(1)}" fill="#e2e6f0" opacity="0.35"/>
+      <circle cx="${(center + radius + dotR * 0.35).toFixed(1)}" cy="${(center + dotR * 0.35).toFixed(1)}" r="${(dotR * 0.4).toFixed(1)}" fill="#05070d" opacity="0.35"/>
+    `
+    : `<circle cx="${cx}" cy="${cy}" r="${dotR.toFixed(1)}" fill="${fill}" opacity="${opacity}" ${strokeAttr}/>`;
   return `
     <g transform="rotate(${initialDeg.toFixed(1)} ${center} ${center})">
       <g class="orbit-spin" style="transform-origin:${center}px ${center}px; animation-duration:${durationS}s;${reverse ? ' animation-direction:reverse;' : ''}">
-        <circle cx="${(center + radius).toFixed(1)}" cy="${center}" r="${dotR.toFixed(1)}" fill="${fill}" opacity="${opacity}" ${strokeAttr}/>
+        ${body}
       </g>
     </g>
   `;
@@ -76,7 +91,7 @@ export function systemOrbitHtml(sys) {
   }
 
   return `
-    <svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:190px; display:block; margin:0 auto;">
+    <svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; display:block;">
       ${habitableZone}
       ${rings.join('')}
       <circle cx="${center}" cy="${center}" r="20" fill="${sys.star.color}" opacity="0.25"/>
@@ -86,32 +101,50 @@ export function systemOrbitHtml(sys) {
   `;
 }
 
-/** Moon-orbit overlay for Scan Detail's planet portrait — absolutely positioned, transparent except for rings/dots. */
-export function moonOrbitOverlayHtml(moonCount) {
+/**
+ * Moon-orbit overlay for Scan Detail's planet portrait — absolutely
+ * positioned, transparent except for rings/dots. Each moon gets its own
+ * dedicated ring (radius, size, speed, direction all vary per moon) instead
+ * of bucketing several moons onto one or two shared circles; `planetId`
+ * seeds a small local Rng purely for that per-moon cosmetic variety, so the
+ * same planet always renders the same moons rather than reshuffling them
+ * every time its Planetary View is opened.
+ */
+export function moonOrbitOverlayHtml(planetId, moonCount) {
   if (!moonCount) return '';
   const size = 220;
   const center = size / 2;
-  const radii = moonCount <= 2 ? [center - 22] : [center - 40, center - 18];
+  const rng = new Rng(seedToInt(`${planetId}:moons`));
+
+  // Individual orbits spread evenly from just outside the planet portrait
+  // (which occupies the middle 50% of this same box, so its edge sits at
+  // roughly radius 55 here) out toward the frame edge.
+  const minR = 60;
+  const maxR = center - 15;
+  const radii = [];
+  for (let i = 0; i < moonCount; i++) {
+    radii.push(moonCount === 1 ? (minR + maxR) / 2 : minR + (i * (maxR - minR)) / (moonCount - 1));
+  }
 
   const rings = radii
-    .map((r) => `<circle cx="${center}" cy="${center}" r="${r}" fill="none" stroke="#4a5578" stroke-width="1" stroke-dasharray="3 4" opacity="0.7"/>`)
+    .map((r) => `<circle cx="${center}" cy="${center}" r="${r.toFixed(1)}" fill="none" stroke="#4a5578" stroke-width="1" stroke-dasharray="3 4" opacity="0.7"/>`)
     .join('');
 
   const dots = [];
   for (let i = 0; i < moonCount; i++) {
-    const ringIdx = i % radii.length;
-    // Moons sharing a ring must share duration AND direction — anything else
-    // makes two dots on the same circle drift toward and "collide" with each
-    // other. A fixed phase offset (initialDeg) keeps them apart forever.
     dots.push(orbitingMarker({
       center,
-      radius: radii[ringIdx],
-      initialDeg: i * GOLDEN_ANGLE_DEG + 40,
-      dotR: 3.4,
-      fill: '#c7cbd6',
+      radius: radii[i],
+      initialDeg: i * GOLDEN_ANGLE_DEG + 40 + (rng.float() - 0.5) * 40,
+      dotR: 2.4 + rng.float() * 2.6,
+      fill: '#8b93a8',
       stroke: '#05070d',
-      durationS: 14 + ringIdx * 10,
-      reverse: false,
+      shaded: true,
+      // Every moon has its own ring now, so — unlike planets sharing a
+      // system's orbit bands — there's no shared-circle collision to avoid;
+      // speed and direction can vary freely per moon.
+      durationS: 12 + i * 5 + rng.float() * 6,
+      reverse: rng.chance(0.5),
     }));
   }
 

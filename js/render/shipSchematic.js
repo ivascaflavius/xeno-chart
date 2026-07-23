@@ -46,7 +46,7 @@ export function shipSchematicHtml(moduleStatuses, hullColorHex) {
   `;
   const bays = moduleStatuses.map((m) => moduleBay(m, hullColorHex)).join('');
   return `
-    <svg viewBox="0 0 160 220" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:190px; display:block; margin:0 auto;">
+    <svg viewBox="0 0 160 220" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; display:block;">
       ${hull}
       ${bays}
     </svg>

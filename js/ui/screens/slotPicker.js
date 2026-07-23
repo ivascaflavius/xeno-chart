@@ -35,7 +35,7 @@ function renderSlot(gs, slot) {
   });
 
   if (!save) {
-    return el('div', { className: 'panel stack' }, [
+    return el('div', { className: 'panel stack panel-compact' }, [
       el('p', { className: 'title', text: `Slot ${slot + 1}`, style: 'font-size:1.05rem' }),
       el('p', { className: 'subtitle', text: 'Empty.' }),
       el('div', { className: 'row row-compact' }, [
@@ -52,13 +52,10 @@ function renderSlot(gs, slot) {
   }
 
   const lastPlayed = save.lastPlayedAt ? new Date(save.lastPlayedAt).toLocaleString() : '—';
-  return el('div', { className: 'panel stack' }, [
+  return el('div', { className: 'panel stack panel-compact' }, [
     el('p', { className: 'title', text: `Slot ${slot + 1}: ${save.galaxyName}`, style: 'font-size:1.05rem' }),
-    el('p', { className: 'subtitle', text: `${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'} mode` }),
-    el('p', {}, [`Ship: ${save.shipName}`]),
-    el('p', {}, [`Systems visited: ${save.stats.systemsVisited.length}`]),
-    el('p', {}, [`Cycle: ${save.cycle}`]),
-    el('p', { className: 'subtitle', text: `Last played: ${lastPlayed}` }),
+    el('p', { className: 'subtitle', text: `${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'} · Ship: ${save.shipName}` }),
+    el('p', { className: 'subtitle', text: `${save.stats.systemsVisited.length} systems visited · Cycle ${save.cycle} · Last played ${lastPlayed}` }),
     el('div', { className: 'row row-compact' }, [
       iconButton({
         iconName: 'resume', label: 'Resume', className: 'btn btn-primary', onClick: () => gs.loadExpedition(slot),

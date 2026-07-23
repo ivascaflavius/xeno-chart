@@ -99,7 +99,7 @@ export function render(container, gs) {
     iconButton({ iconName: 'codex', label: 'Codex', onClick: () => gs.show('CODEX') }),
   ]);
 
-  container.appendChild(el('div', { className: 'screen' }, [
+  container.appendChild(el('div', { className: 'screen screen-wide' }, [
     el('p', { className: 'title', text: 'Galactic View' }),
     el('p', {
       className: 'subtitle',

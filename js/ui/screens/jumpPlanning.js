@@ -69,8 +69,7 @@ export function render(container, gs) {
     infoPanel,
     costPanel,
     el('div', { className: 'spacer' }),
-    el('div', { className: 'row' }, [
-      el('div', { className: 'spacer' }),
+    el('div', { className: 'row', style: 'justify-content:center' }, [
       iconButton({
         iconName: viaWormhole ? 'wormhole' : 'rocket',
         label: viaWormhole ? 'Commit Wormhole Jump' : 'Commit Jump',
