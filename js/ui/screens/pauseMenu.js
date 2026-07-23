@@ -10,7 +10,7 @@ export function render(container, gs) {
         iconName: 'resume', label: 'Resume', className: 'btn btn-primary btn-block', onClick: () => gs.back(),
       }),
       iconButton({
-        iconName: 'help', label: 'How to fly', className: 'btn btn-block', onClick: () => gs.show('HOW_TO_FLY'),
+        iconName: 'help', label: 'Help', className: 'btn btn-block', onClick: () => gs.show('HOW_TO_FLY'),
       }),
       iconButton({
         iconName: 'settings', label: 'Settings', className: 'btn btn-block', onClick: () => gs.show('SETTINGS'),

@@ -17,19 +17,35 @@ function resourceChip(save, iconName, key) {
   ]);
 }
 
+function hudChip(iconName, text) {
+  return el('div', { className: 'hud-chip' }, [
+    el('span', { className: 'resource-icon', html: icon(iconName, 14) }),
+    el('span', { text }),
+  ]);
+}
+
 export function render(container, gs) {
   const save = gs.save;
   const sys = gs.currentSystem();
 
-  const hudTop = el('div', { className: 'row row-tight' }, [
+  const hudTop = el('div', { className: 'panel row row-tight panel-compact' }, [
+    iconButton({
+      iconName: 'menu', label: 'Menu', iconOnly: true, onClick: () => gs.show('PAUSED'),
+    }),
     resourceChip(save, 'fuel', 'fuel'),
     resourceChip(save, 'charge', 'charge'),
     resourceChip(save, 'oxygen', 'oxygen'),
     resourceChip(save, 'food', 'food'),
     el('div', { className: 'spacer' }),
     iconButton({
-      iconName: 'pause', label: 'Pause', iconOnly: true, onClick: () => gs.show('PAUSED'),
+      iconName: 'journal', label: 'Journal', iconOnly: true, onClick: () => gs.show('JOURNAL'),
     }),
+  ]);
+
+  const hudDetails = el('div', { className: 'panel row row-compact panel-compact' }, [
+    hudChip('ship', save.shipName),
+    hudChip('cycle', `Cycle ${save.cycle}`),
+    hudChip('currentSystem', sys.name),
   ]);
 
   const lifeSupportBanner = save.lifeSupportCountdown !== null
@@ -84,14 +100,17 @@ export function render(container, gs) {
   ]);
 
   container.appendChild(el('div', { className: 'screen' }, [
+    el('p', { className: 'title', text: 'Galactic View' }),
+    el('p', {
+      className: 'subtitle',
+      style: 'margin-top:-8px',
+      text: `${save.galaxyName} · ${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'}`,
+    }),
     hudTop,
+    hudDetails,
     lifeSupportBanner,
     hazardBanner,
     strandedBanner,
-    el('p', {
-      className: 'subtitle',
-      text: `${save.galaxyName} · Cycle ${save.cycle} · ${sys.name} (${sys.star.label}) · ${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'}`,
-    }),
     starmap.el,
     actionRow,
   ]));

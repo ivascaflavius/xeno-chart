@@ -52,7 +52,17 @@ export function createEmptySave() {
     // codex/achievement crediting (and any first-contact encounter) waits for a deliberate
     // "take a sample" action, tracked here so it only fires once per planet.
     sampledPlanets: {},
+    // { cycle, type, text, iconName, systemId?, planetId? }[], newest last, capped at
+    // JOURNAL_MAX_ENTRIES (see gameState.js) — a human-readable log of what happened this
+    // expedition, shown in the Journal screen. systemId/planetId (when present) let the
+    // Journal screen look up and show the real star/planet portrait next to the entry.
+    journal: [],
   };
+}
+
+/** A fresh install (or a full reset) gets a placeholder identity rather than an empty field to fill in. */
+function generateDefaultCommanderName() {
+  return `Commander-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 export function createEmptyGlobal() {
@@ -64,7 +74,7 @@ export function createEmptyGlobal() {
       biological: {},
     },
     achievements: {},
-    commanderName: '',
+    commanderName: generateDefaultCommanderName(),
     audio: { enabled: true, volume: 0.5 },
     haptics: { enabled: true },
   };

@@ -1,11 +1,11 @@
 import { el } from '../components/dom.js';
-import { iconButton } from '../components/iconButton.js';
+import { screenHeader } from '../components/screenHeader.js';
 
 export function render(container, gs) {
   const commanderName = gs.global.commanderName?.trim() || 'Commander';
 
   container.appendChild(el('div', { className: 'screen' }, [
-    el('p', { className: 'title', text: 'Credits' }),
+    screenHeader('Credits', () => gs.back()),
     el('div', { className: 'panel stack' }, [
       el('p', {
         text: 'Xeno-Chart is an original concept, designed and refined through, and '
@@ -20,7 +20,5 @@ export function render(container, gs) {
       ]),
       el('p', { className: 'subtitle', text: `Thanks for playing, ${commanderName}.` }),
     ]),
-    el('div', { className: 'spacer' }),
-    iconButton({ iconName: 'back', label: 'Back', onClick: () => gs.back() }),
   ]));
 }

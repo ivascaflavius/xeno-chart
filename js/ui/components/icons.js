@@ -20,7 +20,10 @@ const PATHS = {
   rocket: '<path d="M12 2 15 12 9 12Z" fill="currentColor"/><rect x="9" y="12" width="6" height="6" fill="currentColor"/><path d="M10 18 12 22 14 18Z" fill="currentColor" opacity="0.75"/>',
   resume: '<path d="M4 12a8 8 0 1 1 2.5 5.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 12v5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   help: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.3a2.7 2.7 0 1 1 3.7 2.5c-.7.4-.9.9-.9 1.6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="currentColor"/>',
-  settings: '<circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="2"/>',
+  settings: '<circle cx="12" cy="12" r="5.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/>'
+    + [0, 45, 90, 135, 180, 225, 270, 315].map((a) => `<rect x="10.8" y="1.6" width="2.4" height="3.6" rx="0.6" fill="currentColor" transform="rotate(${a} 12 12)"/>`).join(''),
+  menu: '<path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+  star: '<circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="2"/>',
   credits: '<rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   exportIcon: '<path d="M12 15V4M8 8l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   importIcon: '<path d="M12 4v11M8 11l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
@@ -40,6 +43,16 @@ const PATHS = {
   planet: '<circle cx="12" cy="13" r="6" fill="currentColor"/><ellipse cx="12" cy="13" rx="10" ry="3" fill="none" stroke="currentColor" stroke-width="1.8" transform="rotate(-20 12 13)"/>',
   dna: '<path d="M8 2c6 4 2 8 8 12M8 22c6-4 2-8 8-12" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/><path d="M9.3 5.3h5.4M8 9.3h8M8 14.7h8M9.3 18.7h5.4" stroke="currentColor" stroke-width="1.2"/>',
   arrowUp: '<path d="M12 20V5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  edit: '<path d="M4 20 5 15 16 4 20 8 9 19Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5 17.5 10.5" stroke="currentColor" stroke-width="2"/>',
+  lineage: '<circle cx="12" cy="4.5" r="2.5" fill="currentColor"/><circle cx="5" cy="19" r="2.5" fill="currentColor"/><circle cx="19" cy="19" r="2.5" fill="currentColor"/><path d="M12 7v4M12 11 5 16.5M12 11l7 5.5" stroke="currentColor" stroke-width="1.8" fill="none"/>',
+  trophy: '<path d="M7 3h10v6a5 5 0 0 1-10 0Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 14v3M8 21h8M9 21v-2.5a3 3 0 0 1 3-3 3 3 0 0 1 3 3V21" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  cycle: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  save: '<path d="M5 3h11l3 3v15H5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 3v6h7V3M7 14h10v7H7Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+  difficulty: '<path d="M12 3 19 6v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  palette: '<path d="M12 3a9 8 0 1 0 0 16c1.4 0 2-1 2-2s-.6-1.6-.6-2.4c0-1.1.9-1.6 2-1.6H17a4 4 0 0 0 4-4c0-3.3-4-6-9-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="7.5" cy="11" r="1.4" fill="currentColor"/><circle cx="9.5" cy="7.2" r="1.4" fill="currentColor"/><circle cx="14.5" cy="7.2" r="1.4" fill="currentColor"/>',
+  shipClass: '<path d="M12 2 21 6v6c0 5-4 8.5-9 10-5-1.5-9-5-9-10V6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12.3l2 2 4-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  seed: '<path d="M12 21c-4-2-6-5-6-9a6 6 0 0 1 12 0c0 4-2 7-6 9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 21V9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  journal: '<rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8 3v18" stroke="currentColor" stroke-width="1.6"/>',
 };
 
 export function icon(name, size = 18) {

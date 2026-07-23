@@ -7,6 +7,57 @@ import { icon } from '../components/icons.js';
 import { planetDesignation } from '../../procgen/names.js';
 import { moonOrbitOverlayHtml } from '../../render/orbitDiagram.js';
 import { planetStats } from '../../procgen/stats.js';
+import { screenHeader } from '../components/screenHeader.js';
+
+const BAR_SCOPES = '.minerals-panel [data-resource-key], .cargo-bar-panel [data-resource-key]';
+
+/** Snapshot every mineral/cargo bar's current rendered width, keyed by panel-scope + resource key. */
+function captureFillWidths(container) {
+  const widths = new Map();
+  container.querySelectorAll(BAR_SCOPES).forEach((itemEl) => {
+    const scope = itemEl.closest('.minerals-panel') ? 'minerals' : 'cargo';
+    const fill = itemEl.querySelector('.progress-fill');
+    if (fill) widths.set(`${scope}:${itemEl.dataset.resourceKey}`, fill.style.width);
+  });
+  return widths;
+}
+
+/**
+ * Replays a from -> to width transition on the (freshly re-rendered) bars
+ * after a harvest — the mineral deposit bar drains first, then the ship
+ * cargo bar fills in shortly after, echoing the "to cargo" flow arrow
+ * between the two panels. Both finish well under a second.
+ */
+function animateHarvestBars(container, beforeWidths) {
+  const mineralFills = [];
+  const cargoFills = [];
+  container.querySelectorAll(BAR_SCOPES).forEach((itemEl) => {
+    const scope = itemEl.closest('.minerals-panel') ? 'minerals' : 'cargo';
+    const before = beforeWidths.get(`${scope}:${itemEl.dataset.resourceKey}`);
+    const fill = itemEl.querySelector('.progress-fill');
+    if (!fill || before === undefined) return;
+    const after = fill.style.width;
+    fill.style.transition = 'none';
+    fill.style.width = before;
+    (scope === 'minerals' ? mineralFills : cargoFills).push({ fill, after });
+  });
+  if (mineralFills.length === 0 && cargoFills.length === 0) return;
+
+  // Force a reflow so the browser actually paints the "before" width above
+  // before we schedule the "after" width — otherwise both changes could get
+  // batched into one frame and the transition would never fire.
+  // eslint-disable-next-line no-unused-expressions
+  container.offsetHeight;
+
+  requestAnimationFrame(() => {
+    mineralFills.forEach(({ fill }) => { fill.style.transition = ''; });
+    mineralFills.forEach(({ fill, after }) => { fill.style.width = after; });
+    setTimeout(() => {
+      cargoFills.forEach(({ fill }) => { fill.style.transition = ''; });
+      cargoFills.forEach(({ fill, after }) => { fill.style.width = after; });
+    }, 150);
+  });
+}
 
 export function render(container, gs) {
   const sys = gs.currentSystem();
@@ -51,13 +102,20 @@ export function render(container, gs) {
       label: harvestLabel,
       className: 'btn btn-primary',
       disabled: allDepleted || !canHarvestAny,
-      onClick: () => (mineralData.length === 1
-        ? gs.harvest(planet.id, mineralData[0].mineral)
-        : gs.harvestAll(planet.id)),
+      onClick: () => {
+        const beforeWidths = captureFillWidths(container);
+        if (mineralData.length === 1) gs.harvest(planet.id, mineralData[0].mineral);
+        else gs.harvestAll(planet.id);
+        // gs.harvest[All]() re-renders this screen synchronously (into the
+        // same `container`), so by the time control returns here the new
+        // bars already exist — this just replays their width change as an
+        // animation instead of leaving it as a silent instant jump.
+        animateHarvestBars(container, beforeWidths);
+      },
     })
     : null;
 
-  const resourcesPanel = el('div', { className: 'panel stack panel-compact' }, [
+  const resourcesPanel = el('div', { className: 'panel stack panel-compact minerals-panel' }, [
     el('div', { className: 'row row-tight' }, [
       el('span', { className: 'icon-chip', html: icon('planet', 16) }),
       el('span', { className: 'subtitle', text: 'Minerals' }),
@@ -116,7 +174,7 @@ export function render(container, gs) {
   ]);
 
   container.appendChild(el('div', { className: 'screen' }, [
-    el('p', { className: 'title', text: 'Planetary View' }),
+    screenHeader('Planetary View', () => gs.show('SYSTEM_VIEW')),
     planetPanel,
     flash ? el('div', { className: 'banner banner-info', text: flash }) : null,
     cargoBar(gs.save),
@@ -124,7 +182,5 @@ export function render(container, gs) {
     resourcesPanel,
     lifePanel,
     orbitPanel,
-    el('div', { className: 'spacer' }),
-    iconButton({ iconName: 'back', label: 'Back', onClick: () => gs.show('SYSTEM_VIEW') }),
   ]));
 }

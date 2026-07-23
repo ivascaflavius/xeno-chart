@@ -1,7 +1,9 @@
 import { createEmptySave } from '../data/schema.js';
 import { seedToInt } from '../procgen/prng.js';
 import { getStartSystemId, getSystem, getSystemsInRadius, distanceLy } from '../procgen/galaxy.js';
-import { generateGalaxyName, generateShipName } from '../procgen/names.js';
+import {
+  generateGalaxyName, generateShipName, generateSystemName, planetDesignation,
+} from '../procgen/names.js';
 import {
   BASE_SENSOR_RANGE_LY,
   STARTING_RESOURCES,
@@ -52,6 +54,7 @@ import * as pauseMenu from '../ui/screens/pauseMenu.js';
 import * as gameOver from '../ui/screens/gameOver.js';
 import * as settings from '../ui/screens/settings.js';
 import * as credits from '../ui/screens/credits.js';
+import * as journal from '../ui/screens/journal.js';
 
 const SCREENS = {
   MAIN_MENU: mainMenu,
@@ -68,7 +71,14 @@ const SCREENS = {
   GAME_OVER: gameOver,
   SETTINGS: settings,
   CREDITS: credits,
+  JOURNAL: journal,
 };
+
+// Each entry is a short flat object (cycle, type, text, iconName, optional
+// systemId/planetId) — well under 300 bytes of JSON even at its largest, so
+// 1000 entries costs roughly 300KB in a save that already lives in
+// localStorage (multi-MB budget per origin in every modern browser).
+const JOURNAL_MAX_ENTRIES = 1000;
 
 /** Backfills fields added to the save shape after a save was written, so older saves don't crash on load. */
 function normalizeSave(save) {
@@ -77,6 +87,7 @@ function normalizeSave(save) {
   if (!save.shipClass) save.shipClass = 'standard';
   if (!save.lifeDiscoveries) save.lifeDiscoveries = {};
   if (!save.sampledPlanets) save.sampledPlanets = {};
+  if (!save.journal) save.journal = [];
   if (save.moduleDisabled === undefined) save.moduleDisabled = null;
   return save;
 }
@@ -244,6 +255,21 @@ class GameState {
     vibrateForTier(tier);
   }
 
+  /**
+   * Appends a human-readable entry to the expedition Journal (a capped,
+   * newest-last log shown in its own screen). `systemId`/`planetId`, when
+   * given, let the Journal screen look up and show the real star/planet
+   * portrait next to the entry rather than just a generic action icon.
+   */
+  addJournalEntry({
+    type, text, iconName, systemId, planetId,
+  }) {
+    this.save.journal.push({
+      cycle: this.save.cycle, type, text, iconName, systemId, planetId,
+    });
+    if (this.save.journal.length > JOURNAL_MAX_ENTRIES) this.save.journal.shift();
+  }
+
   checkMappingAchievement() {
     if (Object.keys(this.save.discoveries).length >= 10) {
       this.unlockAchievement('ten-systems-mapped');
@@ -276,11 +302,20 @@ class GameState {
     const currentPos = currentSystem.pos;
     const range = effectiveSensorRange(this.save, currentSystem.hazard);
     const nearby = getSystemsInRadius(this.baseSeedInt, currentPos, range);
+    let newlyDiscovered = 0;
     for (const stub of nearby) {
       const existing = this.save.discoveries[stub.id];
       if (!existing) {
         this.save.discoveries[stub.id] = { tier: 'long' };
+        newlyDiscovered += 1;
       }
+    }
+    if (newlyDiscovered > 0) {
+      this.addJournalEntry({
+        type: 'scan-long',
+        text: `Long-range scan discovered ${newlyDiscovered} system${newlyDiscovered === 1 ? '' : 's'}`,
+        iconName: 'scan',
+      });
     }
 
     const alreadyCovered = this.save.scanHistory.some(
@@ -329,6 +364,15 @@ class GameState {
       this.unlockAchievement('first-wormhole');
     }
 
+    if (!alreadyClose) {
+      this.addJournalEntry({
+        type: 'scan-close',
+        text: `Close-range scanned ${generateSystemName(this.baseSeedInt, systemId)}`,
+        iconName: 'closeScan',
+        systemId,
+      });
+    }
+
     this.checkMappingAchievement();
     const isGameOver = this.advanceCycle();
     this.persistSave();
@@ -372,6 +416,14 @@ class GameState {
       stageLabel: planet.life.stageLabel,
       systemId: sys.id,
     };
+
+    this.addJournalEntry({
+      type: 'sample',
+      text: `Collected a sample of ${planet.life.speciesName} from ${planetDesignation(generateSystemName(this.baseSeedInt, sys.id), planet.index)}`,
+      iconName: 'dna',
+      systemId: sys.id,
+      planetId,
+    });
 
     if (planet.life.stage === 'intelligent') {
       this.unlockAchievement('first-intelligent-life');
@@ -448,6 +500,14 @@ class GameState {
         body: `${Math.round(totalHarvested)} ${mineralKey}${cyclesElapsed > 1 ? ` · ${cyclesElapsed} cycles` : ''}`,
       });
       this.unlockAchievement('first-harvest');
+      const planet = this.currentSystem().planets.find((p) => p.id === planetId);
+      this.addJournalEntry({
+        type: 'harvest',
+        text: `Harvested ${Math.round(totalHarvested)} ${mineralKey} from ${planetDesignation(generateSystemName(this.baseSeedInt, systemId), planet.index)}`,
+        iconName: mineralKey,
+        systemId,
+        planetId,
+      });
     }
 
     this.persistSave();
@@ -485,11 +545,19 @@ class GameState {
 
     const harvestedAny = Object.keys(totals).length > 0;
     if (harvestedAny) {
+      const summary = Object.entries(totals).map(([k, v]) => `${Math.round(v)} ${k}`).join(', ');
       enqueueCelebration('minor', {
         title: 'Harvested',
-        body: Object.entries(totals).map(([k, v]) => `${Math.round(v)} ${k}`).join(', '),
+        body: summary,
       });
       this.unlockAchievement('first-harvest');
+      this.addJournalEntry({
+        type: 'harvest',
+        text: `Harvested ${summary} from ${planetDesignation(generateSystemName(this.baseSeedInt, systemId), planet.index)}`,
+        iconName: 'cargo',
+        systemId,
+        planetId,
+      });
     }
 
     this.persistSave();
@@ -517,11 +585,18 @@ class GameState {
     const currentPos = this.currentSystem().pos;
     const target = getSystem(this.baseSeedInt, targetSystemId);
     const distance = distanceLy(currentPos, target.pos);
-    const cost = this.viaWormhole
+    const viaWormhole = this.viaWormhole;
+    const cost = viaWormhole
       ? computeWormholeJumpCost(this.save, target.hazard)
       : computeJumpCost(this.save, distance, target.hazard);
     const result = performJump(this.save, cost, distance, targetSystemId);
     if (!result.ok) return result;
+    this.addJournalEntry({
+      type: 'jump',
+      text: `${viaWormhole ? 'Wormhole-jumped' : 'Jumped'} to ${generateSystemName(this.baseSeedInt, targetSystemId)}`,
+      iconName: viaWormhole ? 'wormhole' : 'rocket',
+      systemId: targetSystemId,
+    });
     this.selectedSystemId = null;
     this.viaWormhole = false;
     this.persistSave();
@@ -536,6 +611,11 @@ class GameState {
       if (wasStranded && !this.save.stranded) {
         this.unlockAchievement('survive-stranding');
       }
+      this.addJournalEntry({
+        type: 'distress',
+        text: 'Sent a distress beacon — received emergency fuel',
+        iconName: 'distress',
+      });
       this.persistSave();
       this.refresh();
     }

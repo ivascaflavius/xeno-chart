@@ -4,10 +4,27 @@ import {
   STAR_CLASSES, PLANET_CLASSES, BIOCHEMISTRY_TYPES, LIFE_STAGES, ACHIEVEMENTS,
 } from '../../data/constants.js';
 import { attachHoverTooltip } from '../components/tooltip.js';
-import { iconButton } from '../components/iconButton.js';
+import { icon } from '../components/icons.js';
 import { generateCladeName } from '../../procgen/names.js';
+import { screenHeader } from '../components/screenHeader.js';
 
-const TABS = ['stellar', 'planetary', 'biological', 'lineage', 'achievements'];
+const TABS = [
+  {
+    key: 'stellar', iconName: 'star', label: 'Stellar', subtitle: 'Stars discovered across your travels.',
+  },
+  {
+    key: 'planetary', iconName: 'planet', label: 'Planetary', subtitle: 'Planet types you have surveyed.',
+  },
+  {
+    key: 'biological', iconName: 'dna', label: 'Biological', subtitle: 'Life forms sampled or identified.',
+  },
+  {
+    key: 'lineage', iconName: 'lineage', label: 'Lineage', subtitle: 'Genesis clades traced from your discoveries.',
+  },
+  {
+    key: 'achievements', iconName: 'trophy', label: 'Achievements', subtitle: 'Milestones unlocked so far.',
+  },
+];
 
 /** genesisMarkerId -> discovery[] this expedition, for the lineage-web view (§3, §11, Phase 3). */
 function groupByClade(lifeDiscoveries) {
@@ -24,6 +41,7 @@ function buildItems(track) {
     return STAR_CLASSES.map((cls) => ({
       key: cls.key,
       label: cls.label,
+      caption: cls.short,
       portrait: () => starPortrait(`codex:${cls.key}`, { class: cls.key, color: cls.color, massRoll: 0.5 }),
     }));
   }
@@ -31,6 +49,7 @@ function buildItems(track) {
     return PLANET_CLASSES.map((cls) => ({
       key: cls.key,
       label: cls.label,
+      caption: cls.label,
       portrait: () => planetPortrait(`codex:${cls.key}`, {
         class: cls.key, color: cls.color, minerals: {}, sizeRoll: 0.5, index: 0,
       }),
@@ -43,6 +62,7 @@ function buildItems(track) {
       items.push({
         key,
         label: `${bio.label} · ${stage.label}`,
+        caption: `${bio.short} · ${stage.short}`,
         portrait: () => lifePortrait(`codex:${key}`, { biochemistry: bio.key, stage: stage.key }),
       });
     }
@@ -61,8 +81,10 @@ export function render(container, gs) {
     const discovered = gs.global.codex[active];
     for (const item of buildItems(active)) {
       const isDiscovered = !!discovered[item.key];
-      const entry = el('div', { className: 'codex-entry' });
-      entry.innerHTML = isDiscovered ? item.portrait() : lockedPortrait();
+      const entry = el('div', { className: 'codex-entry' }, [
+        el('div', { className: 'codex-entry-icon', html: isDiscovered ? item.portrait() : lockedPortrait() }),
+        isDiscovered ? el('span', { className: 'codex-entry-caption', text: item.caption }) : null,
+      ]);
       attachHoverTooltip(entry, () => (isDiscovered
         ? `<strong>${item.label}</strong>`
         : '<em>Undiscovered</em>'));
@@ -121,7 +143,10 @@ export function render(container, gs) {
     }
   }
 
+  const tabSubtitle = el('p', { className: 'subtitle' });
+
   function renderContent() {
+    tabSubtitle.textContent = TABS.find((t) => t.key === active)?.subtitle || '';
     if (active === 'achievements') {
       renderAchievements();
     } else if (active === 'lineage') {
@@ -135,10 +160,11 @@ export function render(container, gs) {
     tabRow.innerHTML = '';
     for (const tab of TABS) {
       tabRow.appendChild(el('button', {
-        className: `tab-btn${active === tab ? ' active' : ''}`,
-        text: tab[0].toUpperCase() + tab.slice(1),
+        className: `tab-btn${active === tab.key ? ' active' : ''}`,
+        title: tab.label,
+        html: icon(tab.iconName, 20),
         onClick: () => {
-          active = tab;
+          active = tab.key;
           renderTabs();
           renderContent();
         },
@@ -150,10 +176,9 @@ export function render(container, gs) {
   renderContent();
 
   container.appendChild(el('div', { className: 'screen' }, [
-    el('p', { className: 'title', text: 'Codex' }),
+    screenHeader('Codex', () => gs.back()),
     tabRow,
+    tabSubtitle,
     contentWrap,
-    el('div', { className: 'spacer' }),
-    iconButton({ iconName: 'back', label: 'Back', onClick: () => gs.back() }),
   ]));
 }

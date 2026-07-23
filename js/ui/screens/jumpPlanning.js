@@ -3,6 +3,7 @@ import { getSystem } from '../../procgen/galaxy.js';
 import { planetDesignation } from '../../procgen/names.js';
 import { iconButton } from '../components/iconButton.js';
 import { icon } from '../components/icons.js';
+import { screenHeader } from '../components/screenHeader.js';
 
 function infoRow(iconName, text) {
   return el('div', { className: 'row', style: 'gap:8px' }, [
@@ -64,12 +65,11 @@ export function render(container, gs) {
   ]);
 
   container.appendChild(el('div', { className: 'screen' }, [
-    el('p', { className: 'title', text: viaWormhole ? 'Wormhole Jump' : 'Jump Planning' }),
+    screenHeader(viaWormhole ? 'Wormhole Jump' : 'Jump Planning', backToStarmap),
     infoPanel,
     costPanel,
     el('div', { className: 'spacer' }),
     el('div', { className: 'row' }, [
-      iconButton({ iconName: 'back', label: 'Back', onClick: backToStarmap }),
       el('div', { className: 'spacer' }),
       iconButton({
         iconName: viaWormhole ? 'wormhole' : 'rocket',

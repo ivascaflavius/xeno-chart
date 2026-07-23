@@ -3,6 +3,7 @@ import { iconButton } from '../components/iconButton.js';
 import { confirmModal } from '../components/modal.js';
 import * as saveManager from '../../save/saveManager.js';
 import { isSupported as hapticsSupported } from '../../audio/hapticsManager.js';
+import { screenHeader } from '../components/screenHeader.js';
 
 export function render(container, gs) {
   const { global } = gs;
@@ -66,7 +67,7 @@ export function render(container, gs) {
   }
 
   container.appendChild(el('div', { className: 'screen' }, [
-    el('p', { className: 'title', text: 'Settings' }),
+    screenHeader('Settings', () => gs.back()),
     el('div', { className: 'panel stack field' }, [
       el('label', { text: 'Commander name' }),
       nameInput,
@@ -102,7 +103,5 @@ export function render(container, gs) {
         }),
       }),
     ]),
-    el('div', { className: 'spacer' }),
-    iconButton({ iconName: 'back', label: 'Back', onClick: () => gs.back() }),
   ]));
 }

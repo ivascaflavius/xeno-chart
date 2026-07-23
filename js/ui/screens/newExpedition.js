@@ -1,7 +1,31 @@
 import { el } from '../components/dom.js';
 import { confirmModal } from '../components/modal.js';
 import { iconButton } from '../components/iconButton.js';
+import { icon } from '../components/icons.js';
+import { attachHoverTooltip } from '../components/tooltip.js';
 import { SAVE_SLOT_COUNT, HULL_COLORS, SHIP_CLASSES } from '../../data/constants.js';
+import { screenHeader } from '../components/screenHeader.js';
+
+function sectionHeader(iconName, text) {
+  return el('div', { className: 'row row-tight' }, [
+    el('span', { className: 'icon-chip', html: icon(iconName, 16) }),
+    el('span', { className: 'subtitle', text }),
+  ]);
+}
+
+/** A compact segmented row of equal-width buttons sharing one description line below, instead of each option carrying its own full-height card. */
+function segmented(wrap, descEl, options, activeKey, onPick) {
+  wrap.innerHTML = '';
+  wrap.className = 'row row-compact segmented';
+  for (const opt of options) {
+    wrap.appendChild(el('button', {
+      className: `btn${activeKey === opt.key ? ' btn-primary' : ''}`,
+      text: opt.label,
+      onClick: () => onPick(opt.key),
+    }));
+  }
+  descEl.textContent = options.find((o) => o.key === activeKey)?.description || '';
+}
 
 export function render(container, gs) {
   let difficulty = 'expedition';
@@ -16,46 +40,37 @@ export function render(container, gs) {
   let selectedHullColor = 'default';
   let selectedShipClass = 'standard';
 
-  const seedInput = el('input', { type: 'text', placeholder: 'Leave blank for random' });
+  const seedInput = el('input', { type: 'text', placeholder: 'Seed code (optional) — leave blank for random' });
   const shipNameInput = el('input', { type: 'text', placeholder: 'Leave blank for a random name', maxlength: 30 });
-  const diffWrap = el('div', { className: 'stack' });
-  const slotWrap = el('div', { className: 'stack' });
-  const hullWrap = el('div', { className: 'row' });
-  const classWrap = el('div', { className: 'stack' });
-
-  function difficultyButton(key, label, desc) {
-    return el('button', {
-      className: `btn btn-block${difficulty === key ? ' btn-primary' : ''}`,
-      onClick: () => {
-        difficulty = key;
-        renderDifficulty();
-      },
-    }, [
-      el('div', {}, [
-        el('div', { text: label }),
-        el('div', { className: 'subtitle', text: desc }),
-      ]),
-    ]);
-  }
+  const diffWrap = el('div', {});
+  const diffDesc = el('p', { className: 'subtitle', style: 'margin-top:4px' });
+  const slotWrap = el('div', { className: 'row row-compact' });
+  const hullWrap = el('div', { className: 'row row-tight' });
+  const hullDesc = el('p', { className: 'subtitle', style: 'margin-top:4px' });
+  const classWrap = el('div', {});
+  const classDesc = el('p', { className: 'subtitle', style: 'margin-top:4px' });
 
   function renderDifficulty() {
-    diffWrap.innerHTML = '';
-    diffWrap.appendChild(difficultyButton('expedition', 'Expedition', 'Full stakes — life-support failure ends the run.'));
-    diffWrap.appendChild(difficultyButton('relaxed', 'Relaxed', 'Life support never ends the run — systems degrade instead.'));
+    segmented(diffWrap, diffDesc, [
+      { key: 'expedition', label: 'Expedition', description: 'Full stakes — life-support failure ends the run.' },
+      { key: 'relaxed', label: 'Relaxed', description: 'Life support never ends the run — systems degrade instead.' },
+    ], difficulty, (key) => { difficulty = key; renderDifficulty(); });
   }
 
   function renderSlots() {
     slotWrap.innerHTML = '';
     saves.forEach((save, i) => {
-      const label = save ? `Slot ${i + 1}: ${save.galaxyName}` : `Slot ${i + 1} (empty)`;
-      slotWrap.appendChild(el('button', {
-        className: `btn btn-block${selectedSlot === i ? ' btn-primary' : ''}`,
+      const label = save ? `Slot ${i + 1}` : `Slot ${i + 1} (empty)`;
+      const btn = el('button', {
+        className: `btn${selectedSlot === i ? ' btn-primary' : ''}`,
         text: label,
         onClick: () => {
           selectedSlot = i;
           renderSlots();
         },
-      }));
+      });
+      if (save) attachHoverTooltip(btn, () => save.galaxyName);
+      slotWrap.appendChild(btn);
     });
   }
 
@@ -63,36 +78,25 @@ export function render(container, gs) {
     hullWrap.innerHTML = '';
     for (const hull of HULL_COLORS) {
       const unlocked = !hull.unlockAchievement || !!gs.global.achievements[hull.unlockAchievement];
-      const btn = el('button', {
-        className: `btn${selectedHullColor === hull.key ? ' btn-primary' : ''}`,
-        style: `border-color:${hull.color}`,
+      const swatch = el('button', {
+        className: `swatch${selectedHullColor === hull.key ? ' selected' : ''}`,
+        style: `background:${hull.color}`,
         disabled: !unlocked,
-        text: unlocked ? hull.label : `${hull.label} (locked)`,
+        title: unlocked ? hull.label : `${hull.label} (locked)`,
         onClick: () => {
           selectedHullColor = hull.key;
+          hullDesc.textContent = hull.label;
           renderHullColors();
         },
       });
-      hullWrap.appendChild(btn);
+      hullWrap.appendChild(swatch);
     }
+    const active = HULL_COLORS.find((h) => h.key === selectedHullColor);
+    hullDesc.textContent = active ? active.label : '';
   }
 
   function renderShipClasses() {
-    classWrap.innerHTML = '';
-    for (const cls of SHIP_CLASSES) {
-      classWrap.appendChild(el('button', {
-        className: `btn btn-block${selectedShipClass === cls.key ? ' btn-primary' : ''}`,
-        onClick: () => {
-          selectedShipClass = cls.key;
-          renderShipClasses();
-        },
-      }, [
-        el('div', {}, [
-          el('div', { text: cls.label }),
-          el('div', { className: 'subtitle', text: cls.description }),
-        ]),
-      ]));
-    }
+    segmented(classWrap, classDesc, SHIP_CLASSES.map((c) => ({ key: c.key, label: c.label, description: c.description })), selectedShipClass, (key) => { selectedShipClass = key; renderShipClasses(); });
   }
 
   renderDifficulty();
@@ -112,34 +116,27 @@ export function render(container, gs) {
   }
 
   container.appendChild(el('div', { className: 'screen' }, [
-    el('p', { className: 'title', text: 'New Expedition' }),
-    el('div', { className: 'panel stack' }, [
-      el('p', { className: 'subtitle', text: 'Save slot' }),
+    screenHeader('New Expedition', () => gs.show('MAIN_MENU')),
+    el('div', { className: 'panel stack panel-compact' }, [
+      sectionHeader('save', 'Save Slot'),
       slotWrap,
     ]),
-    el('div', { className: 'panel stack' }, [
-      el('p', { className: 'subtitle', text: 'Difficulty' }),
-      diffWrap,
-    ]),
-    el('div', { className: 'panel stack field' }, [
-      el('label', { text: 'Ship name' }),
+    el('div', { className: 'panel stack panel-compact' }, [
+      sectionHeader('ship', 'Ship'),
       shipNameInput,
-    ]),
-    el('div', { className: 'panel stack' }, [
-      el('p', { className: 'subtitle', text: 'Hull color' }),
       hullWrap,
-    ]),
-    el('div', { className: 'panel stack' }, [
-      el('p', { className: 'subtitle', text: 'Ship class' }),
+      hullDesc,
       classWrap,
+      classDesc,
     ]),
-    el('div', { className: 'panel stack field' }, [
-      el('label', { text: 'Seed code (optional)' }),
+    el('div', { className: 'panel stack panel-compact' }, [
+      sectionHeader('difficulty', 'Expedition Settings'),
+      diffWrap,
+      diffDesc,
       seedInput,
     ]),
     el('div', { className: 'spacer' }),
     el('div', { className: 'row' }, [
-      iconButton({ iconName: 'back', label: 'Back', onClick: () => gs.show('MAIN_MENU') }),
       el('div', { className: 'spacer' }),
       iconButton({
         iconName: 'rocket',

@@ -1,10 +1,25 @@
 import { el } from '../components/dom.js';
 import { iconButton } from '../components/iconButton.js';
+import { icon } from '../components/icons.js';
 import { mainMenuSceneHtml } from '../../render/mainMenuScene.js';
 
 export function render(container, gs) {
   const hasSave = gs.hasAnySave();
   const commanderName = gs.global.commanderName?.trim();
+
+  const welcomeRow = el('div', { className: 'row row-tight', style: 'justify-content:center' }, [
+    el('button', {
+      className: 'link-button subtitle',
+      text: `Welcome back, ${commanderName || 'Commander'}.`,
+      onClick: () => gs.show('SETTINGS'),
+    }),
+    el('button', {
+      className: 'icon-chip',
+      title: 'Edit commander name',
+      html: icon('edit', 13),
+      onClick: () => gs.show('SETTINGS'),
+    }),
+  ]);
 
   container.appendChild(el('div', { className: 'screen screen-menu' }, [
     el('div', { className: 'menu-scene', html: mainMenuSceneHtml() }),
@@ -12,7 +27,7 @@ export function render(container, gs) {
       el('p', { className: 'title', text: 'Xeno-Chart' }),
       el('p', { className: 'subtitle', text: 'Scan the dark. Chart the unknown.' }),
       el('p', { className: 'subtitle', style: 'color:var(--warn)', text: 'Experimental build — still in active development.' }),
-      commanderName ? el('p', { className: 'subtitle', text: `Welcome back, ${commanderName}.` }) : null,
+      welcomeRow,
     ]),
     el('div', { className: 'spacer' }),
     el('div', { className: 'stack' }, [
@@ -30,7 +45,7 @@ export function render(container, gs) {
         onClick: () => gs.show('SLOT_PICKER'),
       }),
       iconButton({
-        iconName: 'help', label: 'How to fly', className: 'btn btn-block', onClick: () => gs.show('HOW_TO_FLY'),
+        iconName: 'help', label: 'Help', className: 'btn btn-block', onClick: () => gs.show('HOW_TO_FLY'),
       }),
       iconButton({
         iconName: 'settings', label: 'Settings', className: 'btn btn-block', onClick: () => gs.show('SETTINGS'),

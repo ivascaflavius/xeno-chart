@@ -81,18 +81,42 @@ export const RELAXED_PENALTY = {
   jumpCostMultiplier: 1.3,
 };
 
+// `short` is a 1-2 word caption for the Codex grid tile (the full `label`,
+// with its parenthetical, is reserved for the hover tooltip).
 export const STAR_CLASSES = [
-  { key: 'O', label: 'O-type (blue giant)', weight: 1, color: '#9db4ff', stable: true },
-  { key: 'B', label: 'B-type (blue-white)', weight: 2, color: '#aebfff', stable: true },
-  { key: 'A', label: 'A-type (white)', weight: 4, color: '#e3e8ff', stable: true },
-  { key: 'F', label: 'F-type (yellow-white)', weight: 6, color: '#fff3d6', stable: true },
-  { key: 'G', label: 'G-type (yellow)', weight: 8, color: '#ffe17a', stable: true },
-  { key: 'K', label: 'K-type (orange)', weight: 8, color: '#ffb066', stable: true },
-  { key: 'M', label: 'M-type (red dwarf)', weight: 10, color: '#ff8266', stable: true },
-  { key: 'WD', label: 'White dwarf', weight: 2, color: '#dce6ff', stable: false },
-  { key: 'NS', label: 'Neutron star (pulsar)', weight: 1, color: '#c9d8ff', stable: false },
-  { key: 'BH', label: 'Black hole', weight: 0.5, color: '#0a0a12', stable: false },
-  { key: 'MAG', label: 'Magnetar', weight: 0.5, color: '#ff7ad9', stable: false },
+  {
+    key: 'O', label: 'O-type (blue giant)', short: 'O-type', weight: 1, color: '#9db4ff', stable: true,
+  },
+  {
+    key: 'B', label: 'B-type (blue-white)', short: 'B-type', weight: 2, color: '#aebfff', stable: true,
+  },
+  {
+    key: 'A', label: 'A-type (white)', short: 'A-type', weight: 4, color: '#e3e8ff', stable: true,
+  },
+  {
+    key: 'F', label: 'F-type (yellow-white)', short: 'F-type', weight: 6, color: '#fff3d6', stable: true,
+  },
+  {
+    key: 'G', label: 'G-type (yellow)', short: 'G-type', weight: 8, color: '#ffe17a', stable: true,
+  },
+  {
+    key: 'K', label: 'K-type (orange)', short: 'K-type', weight: 8, color: '#ffb066', stable: true,
+  },
+  {
+    key: 'M', label: 'M-type (red dwarf)', short: 'Red Dwarf', weight: 10, color: '#ff8266', stable: true,
+  },
+  {
+    key: 'WD', label: 'White dwarf', short: 'White Dwarf', weight: 2, color: '#dce6ff', stable: false,
+  },
+  {
+    key: 'NS', label: 'Neutron star (pulsar)', short: 'Pulsar', weight: 1, color: '#c9d8ff', stable: false,
+  },
+  {
+    key: 'BH', label: 'Black hole', short: 'Black Hole', weight: 0.5, color: '#0a0a12', stable: false,
+  },
+  {
+    key: 'MAG', label: 'Magnetar', short: 'Magnetar', weight: 0.5, color: '#ff7ad9', stable: false,
+  },
 ];
 
 // Chance a stable-class star rolls as "young/star-forming" (§15a) — a visual
@@ -157,19 +181,39 @@ export const MOON_COUNT_RANGES = {
 export const HABITABLE_ZONE_LIFE_MULTIPLIER = 1.6;
 export const OUTSIDE_HABITABLE_ZONE_LIFE_MULTIPLIER = 0.08;
 
+// `short` is a 1-word Codex grid caption (paired with a LIFE_STAGES `short`
+// below to make a 2-word tile caption); `label` stays full-length for tooltips.
 export const BIOCHEMISTRY_TYPES = [
-  { key: 'carbon-dna', label: 'Carbon (DNA)', weight: 20 },
-  { key: 'carbon-rna', label: 'Carbon (RNA)', weight: 4 },
-  { key: 'silicon', label: 'Silicon-based', weight: 1 },
-  { key: 'mirror-chirality', label: 'Mirror-chirality', weight: 0.6 },
-  { key: 'invented-polymer', label: 'Invented polymer', weight: 0.3 },
+  {
+    key: 'carbon-dna', label: 'Carbon (DNA)', short: 'Carbon', weight: 20,
+  },
+  {
+    key: 'carbon-rna', label: 'Carbon (RNA)', short: 'Carbon', weight: 4,
+  },
+  {
+    key: 'silicon', label: 'Silicon-based', short: 'Silicon', weight: 1,
+  },
+  {
+    key: 'mirror-chirality', label: 'Mirror-chirality', short: 'Mirror', weight: 0.6,
+  },
+  {
+    key: 'invented-polymer', label: 'Invented polymer', short: 'Polymer', weight: 0.3,
+  },
 ];
 
 export const LIFE_STAGES = [
-  { key: 'microbial', label: 'Microbial', weight: 12 },
-  { key: 'simple', label: 'Simple multicellular', weight: 5 },
-  { key: 'complex', label: 'Complex organisms', weight: 2 },
-  { key: 'intelligent', label: 'Intelligent', weight: 0.4 },
+  {
+    key: 'microbial', label: 'Microbial', short: 'Microbial', weight: 12,
+  },
+  {
+    key: 'simple', label: 'Simple multicellular', short: 'Simple', weight: 5,
+  },
+  {
+    key: 'complex', label: 'Complex organisms', short: 'Complex', weight: 2,
+  },
+  {
+    key: 'intelligent', label: 'Intelligent', short: 'Intelligent', weight: 0.4,
+  },
 ];
 
 export const BIOSIGNATURE_BASE_CHANCE = 0.12;

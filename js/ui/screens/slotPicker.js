@@ -3,6 +3,7 @@ import { confirmModal, showModal } from '../components/modal.js';
 import { iconButton } from '../components/iconButton.js';
 import { exportSaveToFile, importSaveFromFile } from '../../save/saveManager.js';
 import { SAVE_SLOT_COUNT } from '../../data/constants.js';
+import { screenHeader } from '../components/screenHeader.js';
 
 function renderSlot(gs, slot) {
   const save = gs.peekSave(slot);
@@ -85,15 +86,12 @@ function renderSlot(gs, slot) {
 
 export function render(container, gs) {
   const screen = el('div', { className: 'screen' }, [
-    el('p', { className: 'title', text: 'Continue Expedition' }),
+    screenHeader('Continue Expedition', () => gs.show('MAIN_MENU')),
   ]);
 
   for (let slot = 0; slot < SAVE_SLOT_COUNT; slot++) {
     screen.appendChild(renderSlot(gs, slot));
   }
-
-  screen.appendChild(el('div', { className: 'spacer' }));
-  screen.appendChild(iconButton({ iconName: 'back', label: 'Back', onClick: () => gs.show('MAIN_MENU') }));
 
   container.appendChild(screen);
 }
