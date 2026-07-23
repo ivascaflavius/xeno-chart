@@ -61,9 +61,7 @@ export function render(container, gs) {
     iconButton({ iconName: 'currentSystem', label: 'System', onClick: () => gs.show('SYSTEM_VIEW') }),
     iconButton({ iconName: 'ship', label: 'Ship', onClick: () => gs.show('SHIP_SYSTEMS') }),
     iconButton({ iconName: 'codex', label: 'Codex', onClick: () => gs.show('CODEX') }),
-    iconButton({
-      iconName: 'journal', label: 'Journal', iconOnly: true, onClick: () => gs.show('JOURNAL'),
-    }),
+    iconButton({ iconName: 'journal', label: 'Journal', onClick: () => gs.show('JOURNAL') }),
   ]);
 
   container.appendChild(el('div', { className: 'screen screen-wide' }, [
