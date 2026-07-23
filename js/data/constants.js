@@ -229,10 +229,10 @@ export const OUTSIDE_HABITABLE_ZONE_LIFE_MULTIPLIER = 0.08;
 // below to make a 2-word tile caption); `label` stays full-length for tooltips.
 export const BIOCHEMISTRY_TYPES = [
   {
-    key: 'carbon-dna', label: 'Carbon (DNA)', short: 'Carbon', weight: 20,
+    key: 'carbon-dna', label: 'Carbon (DNA)', short: 'Carbon-DNA', weight: 20,
   },
   {
-    key: 'carbon-rna', label: 'Carbon (RNA)', short: 'Carbon', weight: 4,
+    key: 'carbon-rna', label: 'Carbon (RNA)', short: 'Carbon-RNA', weight: 4,
   },
   {
     key: 'silicon', label: 'Silicon-based', short: 'Silicon', weight: 1,
@@ -306,16 +306,36 @@ export const ASTEROID_FIELD_FUEL_MULTIPLIER = 1.4;
 // --- Achievements (§11, Phase 2) — flat list, no tiers. `tier` drives the
 // celebration rarity (§11a) when the achievement unlocks.
 export const ACHIEVEMENTS = [
-  { key: 'first-pulsar', label: 'First Pulsar', description: 'Discover a neutron star.', tier: 'notable' },
-  { key: 'first-life', label: 'First Contact', description: 'Discover a biosignature.', tier: 'rare' },
-  { key: 'first-wormhole', label: 'Through the Looking Glass', description: 'Discover a wormhole.', tier: 'rare' },
-  { key: 'first-silicon-life', label: 'Not As We Know It', description: 'Discover silicon-based life.', tier: 'rare' },
-  { key: 'first-harvest', label: 'First Haul', description: 'Harvest minerals for the first time.', tier: 'minor' },
-  { key: 'ten-systems-mapped', label: 'Cartographer', description: 'Map 10 systems.', tier: 'notable' },
-  { key: 'survive-stranding', label: 'Limping Home', description: 'Recover from being stranded.', tier: 'notable' },
-  { key: 'first-intelligent-life', label: 'First Contact (Intelligent)', description: 'Discover intelligent life.', tier: 'landmark' },
-  { key: 'first-black-hole', label: 'Event Horizon', description: 'Discover a black hole.', tier: 'notable' },
-  { key: 'first-magnetar', label: 'Field Lines', description: 'Discover a magnetar.', tier: 'notable' },
+  {
+    key: 'first-pulsar', label: 'First Pulsar', description: 'Discover a neutron star.', tier: 'notable', iconName: 'pulsar',
+  },
+  {
+    key: 'first-life', label: 'First Contact', description: 'Discover a biosignature.', tier: 'rare', iconName: 'dna',
+  },
+  {
+    key: 'first-wormhole', label: 'Through the Looking Glass', description: 'Discover a wormhole.', tier: 'rare', iconName: 'wormhole',
+  },
+  {
+    key: 'first-silicon-life', label: 'Not As We Know It', description: 'Discover silicon-based life.', tier: 'rare', iconName: 'atom',
+  },
+  {
+    key: 'first-harvest', label: 'First Haul', description: 'Harvest minerals for the first time.', tier: 'minor', iconName: 'harvest',
+  },
+  {
+    key: 'ten-systems-mapped', label: 'Cartographer', description: 'Map 10 systems.', tier: 'notable', iconName: 'map',
+  },
+  {
+    key: 'survive-stranding', label: 'Limping Home', description: 'Recover from being stranded.', tier: 'notable', iconName: 'lifebuoy',
+  },
+  {
+    key: 'first-intelligent-life', label: 'First Contact (Intelligent)', description: 'Discover intelligent life.', tier: 'landmark', iconName: 'brain',
+  },
+  {
+    key: 'first-black-hole', label: 'Event Horizon', description: 'Discover a black hole.', tier: 'notable', iconName: 'blackhole',
+  },
+  {
+    key: 'first-magnetar', label: 'Field Lines', description: 'Discover a magnetar.', tier: 'notable', iconName: 'magnetar',
+  },
 ];
 
 // --- Ship cosmetics (§12, Phase 2) — purely visual, no mechanical effect.

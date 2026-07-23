@@ -6,7 +6,7 @@ import { effectiveSensorRange } from '../../systems/travel.js';
 import { icon } from '../components/icons.js';
 import { iconButton } from '../components/iconButton.js';
 import { statusBanners } from '../components/statusBanners.js';
-import { shipResourceBar } from '../components/cargoBar.js';
+import { cargoBar } from '../components/cargoBar.js';
 
 export function render(container, gs) {
   const save = gs.save;
@@ -66,7 +66,7 @@ export function render(container, gs) {
     galaxyPanel,
     hazardBanner,
     ...statusBanners(gs),
-    shipResourceBar(save),
+    cargoBar(save),
     starmap.el,
     actionRow,
   ]));

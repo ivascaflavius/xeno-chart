@@ -165,7 +165,10 @@ export function render(container, gs) {
     for (const achievement of ACHIEVEMENTS) {
       const unlocked = !!gs.global.achievements[achievement.key];
       contentWrap.appendChild(el('div', { className: 'panel row' }, [
-        el('span', { className: `status-dot status-${unlocked ? 'green' : 'red'}` }),
+        el('span', {
+          className: `icon-chip status-${unlocked ? 'green' : 'red'}`,
+          html: unlocked ? icon(achievement.iconName, 16) : '?',
+        }),
         el('div', { className: 'stack' }, [
           el('span', { text: unlocked ? achievement.label : '???' }),
           el('span', { className: 'subtitle', text: unlocked ? achievement.description : 'Not yet unlocked' }),

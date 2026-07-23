@@ -56,6 +56,14 @@ const PATHS = {
   info: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="10.5" width="2" height="7" rx="1" fill="currentColor"/><circle cx="12" cy="7" r="1.3" fill="currentColor"/>',
   copy: '<rect x="9" y="9" width="11" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 15V6a2 2 0 0 1 2-2h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   galaxy: '<ellipse cx="12" cy="12" rx="3.6" ry="2" fill="currentColor"/><path d="M12 4.5c-4.5 0-8.2 2.4-9.4 5.8M12 19.5c4.5 0 8.2-2.4 9.4-5.8M4.8 7.5c-1.2 2.2-1.2 5.3 0 7.5M19.2 7.5c1.2 2.2 1.2 5.3 0 7.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>',
+  // Achievement icons (data/constants.js ACHIEVEMENTS.iconName).
+  pulsar: '<circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 12 2 8M12 12 22 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 12 2 16M12 12 22 8" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.5"/>',
+  atom: '<circle cx="12" cy="12" r="2" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.5" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="9" ry="3.5" fill="none" stroke="currentColor" stroke-width="1.5" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.5" fill="none" stroke="currentColor" stroke-width="1.5" transform="rotate(120 12 12)"/>',
+  map: '<path d="M9 4 4 6v14l5-2 6 2 5-2V4l-5 2-6-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" stroke="currentColor" stroke-width="1.5"/>',
+  lifebuoy: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v5M12 16v5M3 12h5M16 12h5" stroke="currentColor" stroke-width="2"/>',
+  brain: '<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-1 5.8A3.5 3.5 0 0 0 8 18a3 3 0 0 0 3-3V6a2 2 0 0 0-2-2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 1 5.8A3.5 3.5 0 0 1 16 18a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  blackhole: '<circle cx="12" cy="12" r="4" fill="currentColor"/><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="1.6"/><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5" transform="rotate(35 12 12)"/>',
+  magnetar: '<circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 12C8 8 8 4 12 2M12 12C16 8 16 4 12 2M12 12C8 16 8 20 12 22M12 12C16 16 16 20 12 22" fill="none" stroke="currentColor" stroke-width="1.3"/>',
 };
 
 export function icon(name, size = 18) {

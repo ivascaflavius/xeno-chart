@@ -1,13 +1,11 @@
 import { el } from '../components/dom.js';
 import { progressBar } from '../components/progressBar.js';
-import { resourceIconRow } from '../components/cargoBar.js';
+import { cargoBar } from '../components/cargoBar.js';
 import { getModuleStatuses } from '../../systems/modules.js';
-import { RESOURCE_CAPS, HULL_COLORS, SHIP_CLASSES } from '../../data/constants.js';
+import { HULL_COLORS, SHIP_CLASSES } from '../../data/constants.js';
 import { icon } from '../components/icons.js';
 import { screenHeader } from '../components/screenHeader.js';
 import { shipSchematicHtml } from '../../render/shipSchematic.js';
-
-const RESOURCE_ORDER = ['fuel', 'charge', 'oxygen', 'food'];
 
 // Modules are matched to the icon of the resource they primarily output, and
 // listed in the same left-to-right order as RESOURCE_ORDER above so each
@@ -57,16 +55,6 @@ export function render(container, gs) {
     ]),
   ]);
 
-  const resourcePanel = el('div', { className: 'panel stack panel-compact' }, [
-    el('div', { className: 'row row-tight' }, [
-      el('span', { className: 'icon-chip', html: icon('charge', 16) }),
-      el('span', { className: 'subtitle', text: 'Resources' }),
-    ]),
-    resourceIconRow(RESOURCE_ORDER.map((key) => ({
-      key, label: key[0].toUpperCase() + key.slice(1), amount: save.resources[key], cap: RESOURCE_CAPS[key],
-    })), null, { showLabels: true }),
-  ]);
-
   const schematicPanel = el('div', { className: 'panel stack panel-compact diagram-panel' }, [
     el('p', { className: 'subtitle diagram-caption', text: 'Ship schematic' }),
     el('div', { className: 'diagram-fill', html: shipSchematicHtml(moduleStatuses, hullColor.color) }),
@@ -75,7 +63,7 @@ export function render(container, gs) {
   container.appendChild(el('div', { className: 'screen screen-wide' }, [
     screenHeader('Ship Systems', () => gs.show('STARMAP')),
     shipPanel,
-    resourcePanel,
+    cargoBar(save),
     el('p', { className: 'subtitle', text: 'Modules' }),
     ...moduleRows,
     schematicPanel,

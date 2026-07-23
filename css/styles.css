@@ -323,21 +323,14 @@ a {
   gap: 10px;
 }
 
+/* icon + number + thin bar, all on one line — one compact row per resource
+   instead of stacking icon/bar/number as three separate rows */
 .cargo-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   flex: 1;
   min-width: 0;
-}
-
-/* optional per-icon label (Ship Systems resource row only — cargoBar/mineral
-   rows stay icon-only and rely on the hover tooltip instead) */
-.cargo-label {
-  font-size: 0.7rem;
-  color: var(--text-dim);
-  white-space: nowrap;
 }
 
 /* a trailing action button (e.g. Harvest) shares the row with the resource
@@ -348,12 +341,15 @@ a {
 }
 
 .cargo-item .progress-track {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .cargo-amount {
   font-size: 0.7rem;
   color: var(--text-dim);
+  flex-shrink: 0;
+  min-width: 1.4em;
 }
 
 .progress-track.thin {
@@ -890,51 +886,30 @@ label {
   color: var(--text-dim);
 }
 
-.tier-minor, .tier-notable {
+/* All tiers land in the same top-right notification slot (§11a) — rare/
+   landmark used to pop up as a centered full-screen modal, which read as a
+   jarring interruption; a bigger/longer-held card in the same corner reads
+   as "a bigger notification", not a different UI. */
+.tier-minor, .tier-notable, .tier-rare, .tier-landmark {
   top: 16px;
   right: 16px;
+  max-width: calc(100vw - 32px);
   animation: celebration-pop-in 0.3s ease;
 }
 
-.tier-rare, .tier-landmark {
-  top: 30%;
-  left: 50%;
-  /* Baked in here, not just the pop-in keyframes below — without a persistent
-     transform the toast recenters correctly only while the 0.4s entrance
-     animation is actually running, then snaps to its untransformed top/left
-     position (visually landing off-center to the right) for the rest of its
-     multi-second display. */
-  transform: translate(-50%, -50%);
-  animation: celebration-pop-in-centered 0.4s ease;
-}
-
 .tier-rare .celebration-card {
-  max-width: 420px;
-  text-align: center;
-  padding: 20px 24px;
-}
-
-.tier-landmark {
-  width: calc(100% - 40px);
-  max-width: 520px;
+  max-width: 340px;
+  padding: 14px 18px;
 }
 
 .tier-landmark .celebration-card {
-  padding: 28px;
-  text-align: center;
+  max-width: 360px;
+  padding: 16px 20px;
 }
 
 .tier-landmark .celebration-portrait {
-  width: 128px;
-  height: 128px;
-}
-
-.tier-landmark::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: -1;
+  width: 96px;
+  height: 96px;
 }
 
 @keyframes celebration-pop-in {
@@ -942,19 +917,10 @@ label {
   to { transform: scale(1); opacity: 1; }
 }
 
-@keyframes celebration-pop-in-centered {
-  from { transform: translate(-50%, -50%) scale(0.85); opacity: 0; }
-  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-}
-
-.tier-rare.dismissing, .tier-landmark.dismissing {
-  transform: translate(-50%, -50%);
-}
-
 .confetti-piece {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 0;
+  right: 0;
   width: 8px;
   height: 8px;
   border-radius: 2px;
@@ -962,8 +928,8 @@ label {
 }
 
 @keyframes confetti-burst {
-  0% { transform: translate(-50%, -50%) rotate(0deg); opacity: 1; }
-  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)); opacity: 0; }
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
 }
 
 ::-webkit-scrollbar {
