@@ -57,7 +57,7 @@ function orbitingMarker({
  * so the inner pivot stays glued to the pair as the outer rotation carries
  * it around.
  */
-function binaryOrbitingMarker({
+export function binaryOrbitingMarker({
   center, radius, initialDeg, durationS, reverse, primary, companion, mutualDurationS = 7,
 }) {
   const px = (center + radius).toFixed(1);
@@ -77,6 +77,18 @@ function binaryOrbitingMarker({
   `;
 }
 
+// A binary pair's combined visual footprint (glow radius) is bigger than a
+// single star's — shared by the halo circle below and by systemOrbitHtml's
+// innermost ring so the two stay in sync: without this, the first planet
+// ring (a fixed radius sized for one star) could sit inside or right on top
+// of the pair's glow instead of clearing it.
+function binaryStarHaloRadius(star) {
+  const rA = 10 + star.massRoll * 6;
+  const rB = 10 + star.companion.massRoll * 6;
+  const sep = 16;
+  return sep + Math.max(rA, rB) + 6;
+}
+
 /** The star (or binary pair) at a system orbit diagram's center. */
 function systemCenterStarHtml(center, star) {
   if (star.class === 'BIN' && star.companion) {
@@ -84,7 +96,7 @@ function systemCenterStarHtml(center, star) {
     const rB = 10 + star.companion.massRoll * 6;
     const sep = 16;
     return `
-      <circle cx="${center}" cy="${center}" r="${(sep + Math.max(rA, rB) + 6).toFixed(1)}" fill="${star.color}" opacity="0.15"/>
+      <circle cx="${center}" cy="${center}" r="${binaryStarHaloRadius(star).toFixed(1)}" fill="${star.color}" opacity="0.15"/>
       <g class="orbit-spin" style="transform-origin:${center}px ${center}px; animation-duration:10s;">
         <circle cx="${(center + sep).toFixed(1)}" cy="${center}" r="${rA.toFixed(1)}" fill="${star.color}" class="portrait-star-flicker" style="transform-origin:${(center + sep).toFixed(1)}px ${center}px"/>
         <circle cx="${(center - sep).toFixed(1)}" cy="${center}" r="${rB.toFixed(1)}" fill="${star.companion.color}" class="portrait-star-flicker" style="transform-origin:${(center - sep).toFixed(1)}px ${center}px"/>
@@ -103,7 +115,12 @@ export function systemOrbitHtml(sys) {
   const size = 300;
   const center = size / 2;
   const maxRadius = center - 30;
-  const baseRadius = 30;
+  // A binary pair's glow reaches further out than a single star's, so the
+  // innermost planet ring needs to start further out too, or it ends up
+  // sitting on top of the stars instead of clearing them (§7b polish).
+  const baseRadius = (sys.star.class === 'BIN' && sys.star.companion)
+    ? binaryStarHaloRadius(sys.star) + 12
+    : 30;
   const spacing = count > 1 ? (maxRadius - baseRadius) / (count - 1) : 0;
 
   const rings = [];
@@ -217,16 +234,61 @@ export function moonOrbitOverlayHtml(planetId, moonCount) {
     }));
   }
 
-  // The whole ring+moon assembly is drawn on a plain circle, then flattened
-  // into a tilted ellipse by this static outer Y-scale — the inner CSS
-  // rotation still traces a true circle in its own local space, so it comes
-  // out correctly flattened too, matching the static rings exactly.
+  // Rendered as a straight top-down view — true circular rings, not a
+  // tilted/flattened perspective — so orbit shapes and speeds read clearly.
   return `
     <svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none;">
-      <g transform="translate(${center} ${center}) scale(1 0.42) translate(${-center} ${-center})">
-        ${rings}
-        ${dots.join('')}
-      </g>
+      ${rings}
+      ${dots.join('')}
+    </svg>
+  `;
+}
+
+/**
+ * Binary-planet pair overlay for Scan Detail — System View's orbit diagram
+ * already shows a binary planet as two bodies mutually orbiting a shared
+ * barycenter (§7a), but the planet's own Planetary View used to show only
+ * the single primary body sitting still, with no indication it has a
+ * companion at all. Both bodies swing around this diagram box's own center
+ * in a single rotation (deliberately not `binaryOrbitingMarker`'s nested
+ * outer+inner pair used in System View — with no outer system-orbit radius
+ * to speak of here, that outer rotation's pivot collapses onto the same
+ * point as the inner one, so it doesn't cancel out as a no-op the way a
+ * true zero-radius orbit would: it just adds a second, faster spin on top
+ * of the mutual orbit, which is what made this look far too fast at first).
+ * A small barycenter cross marks the shared pivot; rendered top-down (true
+ * circles) at the same unhurried pace as a regular moon orbit, like
+ * `moonOrbitOverlayHtml` above. Replaces this diagram's usual centered
+ * `planetPortrait` entirely (rather than layering a companion on top of
+ * it): both bodies are drawn as simple shaded spheres, matching System
+ * View's own binary-planet rendering, since showing the primary's full
+ * texture only on one moving body while the companion stays a flat dot
+ * would read as inconsistent, not paired.
+ */
+export function binaryPairOverlayHtml(planetId, planet) {
+  const size = 220;
+  const center = size / 2;
+  const rng = new Rng(seedToInt(`${planetId}:binary`));
+  const companion = planet.binaryCompanion;
+  const primaryR = 13 + planet.sizeRoll * 8;
+  const companionR = 13 + companion.sizeRoll * 8;
+  const sep = Math.max(primaryR, companionR) * 1.7;
+  const durationS = 14 + rng.float() * 8;
+
+  const orbitRing = `<circle cx="${center}" cy="${center}" r="${sep.toFixed(1)}" fill="none" stroke="#4a5578" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>`;
+  const barycenter = `<path d="M${(center - 5).toFixed(1)} ${center} H${(center + 5).toFixed(1)} M${center} ${(center - 5).toFixed(1)} V${(center + 5).toFixed(1)}" stroke="#ff8a7a" stroke-width="1.2" opacity="0.7"/>`;
+  const pair = `
+    <g class="orbit-spin" style="transform-origin:${center}px ${center}px; animation-duration:${durationS.toFixed(1)}s;${rng.chance(0.5) ? ' animation-direction:reverse;' : ''}">
+      <circle cx="${(center + sep).toFixed(1)}" cy="${center}" r="${primaryR.toFixed(1)}" fill="${planet.color}"/>
+      <circle cx="${(center - sep).toFixed(1)}" cy="${center}" r="${companionR.toFixed(1)}" fill="${companion.color}"/>
+    </g>
+  `;
+
+  return `
+    <svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none;">
+      ${orbitRing}
+      ${barycenter}
+      ${pair}
     </svg>
   `;
 }

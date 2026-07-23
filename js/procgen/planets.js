@@ -33,10 +33,6 @@ function generateOnePlanet(baseSeedInt, systemId, index, count, star, forceMiner
   const planetId = `${systemId}:p${index}`;
   const sizeRoll = rng.float();
 
-  const moonRng = rngFor(baseSeedInt, systemId, 'planet', index, 'moons');
-  const [moonLo, moonHi] = MOON_COUNT_RANGES[cls.key] || [0, 1];
-  const moonCount = moonRng.int(moonLo, moonHi);
-
   // A gas giant that landed in the inner zone reads as a "hot Jupiter" (§7
   // polish) — migrated in close, too hot/tidally battered to keep a ring
   // system, so it always renders without one (see portraits.js).
@@ -44,17 +40,29 @@ function generateOnePlanet(baseSeedInt, systemId, index, count, star, forceMiner
 
   // A binary planet (§7 polish) — a second body sharing this same orbital
   // slot, mutually orbiting a barycenter between them rather than the star
-  // directly. Purely cosmetic like moons: no separate minerals/harvesting,
-  // just another world of roughly comparable size drawn from the same
-  // zone-eligible pool so it still looks physically plausible next to its host.
+  // directly. Purely cosmetic: no separate minerals/harvesting. Kept simple
+  // on purpose — restricted to dwarf/rocky pairs only (the two small, plain
+  // solid-body classes) rather than any zone-eligible class, sized within a
+  // tight 80-120% ratio of the primary rather than a looser nudge, and
+  // always moonless (a moon system around one half of an already-orbiting
+  // pair would need its own barycenter-relative geometry to look right,
+  // which isn't worth the complexity for a cosmetic-only feature).
   const binaryRng = rngFor(baseSeedInt, systemId, 'planet', index, 'binary');
+  const canBeBinary = cls.key === 'dwarf' || cls.key === 'rocky';
   let binaryCompanion = null;
-  if (binaryRng.chance(BINARY_PLANET_CHANCE)) {
-    const compCls = binaryRng.weightedPick(eligible);
+  if (canBeBinary && binaryRng.chance(BINARY_PLANET_CHANCE)) {
+    const compEligible = eligible.filter((c) => c.key === 'dwarf' || c.key === 'rocky');
+    const compCls = binaryRng.weightedPick(compEligible);
+    const sizeRatio = 0.8 + binaryRng.float() * 0.4;
+    const companionSizeRoll = Math.max(0, Math.min(1, sizeRoll * sizeRatio));
     binaryCompanion = {
-      class: compCls.key, label: compCls.label, color: compCls.color, sizeRoll: binaryRng.float(),
+      class: compCls.key, label: compCls.label, color: compCls.color, sizeRoll: companionSizeRoll,
     };
   }
+
+  const moonRng = rngFor(baseSeedInt, systemId, 'planet', index, 'moons');
+  const [moonLo, moonHi] = MOON_COUNT_RANGES[cls.key] || [0, 1];
+  const moonCount = binaryCompanion ? 0 : moonRng.int(moonLo, moonHi);
 
   const planet = {
     id: planetId,

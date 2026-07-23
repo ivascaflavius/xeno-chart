@@ -5,12 +5,16 @@ import { cargoBar, resourceIconRow } from '../components/cargoBar.js';
 import { iconButton } from '../components/iconButton.js';
 import { icon } from '../components/icons.js';
 import { planetDesignation } from '../../procgen/names.js';
-import { moonOrbitOverlayHtml } from '../../render/orbitDiagram.js';
+import { moonOrbitOverlayHtml, binaryPairOverlayHtml } from '../../render/orbitDiagram.js';
 import { planetStats } from '../../procgen/stats.js';
 import { screenHeader } from '../components/screenHeader.js';
 import { statusBanners } from '../components/statusBanners.js';
 
 const BAR_SCOPES = '.minerals-panel [data-resource-key], .cargo-bar-panel [data-resource-key]';
+
+function withIndefiniteArticle(label) {
+  return `${/^[aeiou]/i.test(label) ? 'an' : 'a'} ${label.toLowerCase()}`;
+}
 
 /** Snapshot every mineral/cargo bar's current rendered width, keyed by panel-scope + resource key. */
 function captureFillWidths(container) {
@@ -74,7 +78,10 @@ export function render(container, gs) {
     planetIcon,
     el('div', { className: 'stack', style: 'gap:2px' }, [
       el('p', { className: 'title', text: planetDesignation(sys.name, planet.index), style: 'font-size:1.25rem' }),
-      el('p', { className: 'subtitle', text: planet.label }),
+      el('p', {
+        className: 'subtitle',
+        text: planet.binaryCompanion ? `${planet.label} · binary pair with ${withIndefiniteArticle(planet.binaryCompanion.label)}` : planet.label,
+      }),
       el('p', { className: 'subtitle', text: statsText }),
     ]),
   ]);
@@ -166,12 +173,27 @@ export function render(container, gs) {
     : null;
 
   const orbitFill = el('div', { className: 'diagram-fill' }, [
-    el('div', { style: 'position:absolute; left:25%; top:25%; width:50%; height:50%', html: planetPortrait(planet.id, planet, { decorate: false }) }),
+    // A binary planet replaces the usual still, centered portrait with both
+    // bodies mutually orbiting their shared barycenter (§7a) — showing the
+    // primary sitting still while only the companion moved around it used
+    // to read as a satellite, not a pair.
+    planet.binaryCompanion
+      ? el('div', { html: binaryPairOverlayHtml(planet.id, planet) })
+      : el('div', { style: 'position:absolute; left:25%; top:25%; width:50%; height:50%', html: planetPortrait(planet.id, planet, { decorate: false }) }),
     el('div', { html: moonOrbitOverlayHtml(planet.id, moonCount) }),
   ]);
 
+  // A binary planet's System View orbit diagram shows it as two bodies
+  // sharing one ring (§7a) — the caption here should say so too, not just
+  // the overlay above, since a caption swap between "Orbital view"/"Moon
+  // orbits" would otherwise silently drop the one word that actually
+  // explains why there's an extra ring around a moonless planet.
+  const diagramCaption = planet.binaryCompanion
+    ? (moonCount ? 'Binary companion & moons' : 'Binary companion')
+    : (moonCount ? 'Moon orbits' : 'Orbital view');
+
   const orbitPanel = el('div', { className: 'panel stack panel-compact diagram-panel' }, [
-    el('p', { className: 'subtitle diagram-caption', text: moonCount ? 'Moon orbits' : 'Orbital view' }),
+    el('p', { className: 'subtitle diagram-caption', text: diagramCaption }),
     orbitFill,
   ]);
 
