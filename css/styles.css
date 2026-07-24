@@ -165,6 +165,15 @@ a {
   .action-bar .icon-btn span:last-child {
     display: none;
   }
+
+  /* Screens whose action bar only ever holds 2-3 buttons (New Expedition's
+     Back/Launch) have room to keep labels even on a narrow phone — it's the
+     4-7 button gameplay screens (Galactic/System/Planetary/Ship View) that
+     actually need icon-only to avoid squeezing below a comfortable tap
+     target. */
+  .action-bar.action-bar-labeled .icon-btn span:last-child {
+    display: inline;
+  }
 }
 
 /* Text label shown alongside a chip's icon (health strip chips, hazard

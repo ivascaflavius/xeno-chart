@@ -6,6 +6,8 @@ import { attachHoverTooltip } from '../components/tooltip.js';
 import { startingResourcesPanel } from '../components/cargoBar.js';
 import { SAVE_SLOT_COUNT, HULL_COLORS, SHIP_CLASSES } from '../../data/constants.js';
 import { shipSchematicHtml } from '../../render/shipSchematic.js';
+import { generateShipName } from '../../procgen/names.js';
+import { seedToInt } from '../../procgen/prng.js';
 import { screenHeader } from '../components/screenHeader.js';
 import { backAction } from '../components/commonActions.js';
 
@@ -58,19 +60,25 @@ export function render(container, gs) {
   let selectedHullColor = 'default';
   let selectedShipClass = 'standard';
 
-  const seedInput = el('input', { type: 'text', placeholder: 'Seed code (optional) — leave blank for random' });
-  // Sits to the right of the swatches on one line (not its own row below) —
-  // trims a full row off the Ship section, one of several such merges here
-  // so this whole screen fits without a scrollbar on a short phone.
-  const shipNameInput = el('input', {
-    type: 'text', placeholder: 'Leave blank for a random name', maxlength: 30, style: 'flex:1; min-width:0;',
-  });
+  // Pre-filled with an actual random suggestion (not just a placeholder
+  // hint) so there's a real seed/name to look at and tweak instead of an
+  // empty box — the seed drives the name (same as a real launch would),
+  // so the two stay consistent with each other. Both stay freely editable;
+  // leaving either blank at launch still falls back to a fresh random one.
+  const randomSeed = String(Math.floor(Math.random() * 1e9));
+  const randomShipName = generateShipName(seedToInt(randomSeed));
+
+  const seedInput = el('input', { type: 'text', value: randomSeed, placeholder: 'Seed code' });
+  const shipNameInput = el('input', { type: 'text', value: randomShipName, placeholder: 'Ship name', maxlength: 30 });
   const diffWrap = el('div', {});
   // 'segmented' gives every slot button the same height regardless of
   // whether its label wraps to one line ("Slot 1") or two ("Slot 2" /
   // "(empty)") — same fix already used for the difficulty/ship-class rows.
   const slotWrap = el('div', { className: 'row row-compact segmented' });
-  const hullWrap = el('div', { className: 'row row-tight', style: 'flex-shrink:0;' });
+  // Sits below the ship preview itself, not squeezed alongside the name
+  // input — picking a hull color is a visual choice about the ship you're
+  // already looking at, so it reads better right under it.
+  const hullWrap = el('div', { className: 'row row-tight', style: 'justify-content:center;' });
   const classWrap = el('div', {});
   const schematicFill = el('div', { className: 'diagram-fill' });
 
@@ -144,9 +152,10 @@ export function render(container, gs) {
   const schematicPanel = el('div', { className: 'panel stack panel-compact diagram-panel' }, [
     el('p', { className: 'subtitle diagram-caption', text: 'Ship preview' }),
     schematicFill,
+    hullWrap,
   ]);
 
-  const actionRow = el('div', { className: 'action-bar' }, [
+  const actionRow = el('div', { className: 'action-bar action-bar-labeled' }, [
     backAction('Back', () => gs.show('MAIN_MENU')),
     iconButton({
       iconName: 'rocket',
@@ -180,7 +189,7 @@ export function render(container, gs) {
     ]),
     el('div', { className: 'howtofly-section stack' }, [
       sectionHeader('ship', 'Ship'),
-      el('div', { className: 'row row-tight' }, [shipNameInput, hullWrap]),
+      shipNameInput,
       classWrap,
     ]),
     el('div', { className: 'howtofly-section stack' }, [
