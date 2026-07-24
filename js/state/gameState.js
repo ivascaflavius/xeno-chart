@@ -33,6 +33,7 @@ import {
 import { closeScanChargeMultiplier } from '../systems/hazards.js';
 import * as saveManager from '../save/saveManager.js';
 import { enqueueCelebration } from '../ui/components/celebration.js';
+import { playGameOverTransition } from '../ui/components/gameOverTransition.js';
 import { hideTooltip } from '../ui/components/tooltip.js';
 import {
   playStinger, playWarning, playScanCue, playJumpCue, playHarvestCue, playDistressCue, configure as configureAudio,
@@ -119,7 +120,6 @@ class GameState {
     this.global = saveManager.loadGlobal();
     this.selectedPlanetId = null;
     this.viaWormhole = false;
-    this.flashMessage = null;
     this.presetSlot = null;
     configureAudio(this.global.audio);
     configureHaptics(this.global.haptics);
@@ -129,13 +129,6 @@ class GameState {
   applyGlobalSettings() {
     configureAudio(this.global.audio);
     configureHaptics(this.global.haptics);
-  }
-
-  /** Read-and-clear so a flash message is shown exactly once, on the next render. */
-  takeFlashMessage() {
-    const msg = this.flashMessage;
-    this.flashMessage = null;
-    return msg;
   }
 
   render() {
@@ -175,6 +168,20 @@ class GameState {
   /** Re-render the current screen without navigating (used after actions that mutate state in place). */
   refresh() {
     this.render();
+  }
+
+  /**
+   * Navigate to the Game Over screen the way every *live* ending should —
+   * a run can end as a side effect of an ordinary action (scan/harvest/
+   * jump/beacon) with no prior warning ever shown, so swapping instantly
+   * read as "out of nowhere." Plays a dramatic full-screen transition
+   * (fade + cue) on top of the already-mounted ending screen instead.
+   * Not used when resuming a save that was already flagged game-over
+   * (loadExpedition shows it directly — there's no live moment to react to).
+   */
+  triggerGameOver() {
+    this.show('GAME_OVER');
+    playGameOverTransition();
   }
 
   persistSave() {
@@ -395,7 +402,7 @@ class GameState {
     const isGameOver = this.advanceCycle();
     this.persistSave();
     if (isGameOver) {
-      this.show('GAME_OVER');
+      this.triggerGameOver();
     } else {
       this.refresh();
     }
@@ -458,7 +465,7 @@ class GameState {
     const isGameOver = this.advanceCycle();
     this.persistSave();
     if (isGameOver) {
-      this.show('GAME_OVER');
+      this.triggerGameOver();
     } else {
       this.refresh();
     }
@@ -510,9 +517,15 @@ class GameState {
       this.unlockAchievement('first-intelligent-life');
       if (planet.life.encounter === 'hostile') {
         disableModule(this.save, planet.life.hostileModuleKey);
-        this.flashMessage = `First contact with ${planet.life.speciesName} (${planet.life.techTierLabel}) turned hostile — the ${MODULES[planet.life.hostileModuleKey].label} has been disabled for ${HOSTILE_MODULE_DISABLE_CYCLES} cycles.`;
+        enqueueCelebration('notable', {
+          title: 'First Contact — Hostile',
+          body: `${planet.life.speciesName} (${planet.life.techTierLabel}) — the ${MODULES[planet.life.hostileModuleKey].label} has been disabled for ${HOSTILE_MODULE_DISABLE_CYCLES} cycles.`,
+        });
       } else {
-        this.flashMessage = `First contact with ${planet.life.speciesName} (${planet.life.techTierLabel}) was peaceful.`;
+        enqueueCelebration('notable', {
+          title: 'First Contact — Peaceful',
+          body: `${planet.life.speciesName} (${planet.life.techTierLabel})`,
+        });
       }
     }
 
@@ -594,7 +607,7 @@ class GameState {
 
     this.persistSave();
     if (isGameOver) {
-      this.show('GAME_OVER');
+      this.triggerGameOver();
     } else {
       this.refresh();
     }
@@ -645,7 +658,7 @@ class GameState {
 
     this.persistSave();
     if (isGameOver) {
-      this.show('GAME_OVER');
+      this.triggerGameOver();
     } else {
       this.refresh();
     }
@@ -687,7 +700,7 @@ class GameState {
     if (!this.save.gameOver) this.maybeEndInDeadlock();
     this.persistSave();
     if (this.save.gameOver) {
-      this.show('GAME_OVER');
+      this.triggerGameOver();
       return result;
     }
     // No screen transition here — the caller (the jump-planning pop-up) is
@@ -714,7 +727,7 @@ class GameState {
       const isGameOver = this.maybeEndInDeadlock();
       this.persistSave();
       if (isGameOver) {
-        this.show('GAME_OVER');
+        this.triggerGameOver();
       } else {
         this.refresh();
       }

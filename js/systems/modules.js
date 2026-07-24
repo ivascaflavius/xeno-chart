@@ -54,6 +54,13 @@ export function getModuleStatuses(save) {
     const amount = getAmount(save, cfg.input);
     const cap = capFor(cfg.input);
     const disabled = save.moduleDisabled?.key === key;
+    // Mirrors runOneModule's own fraction>0 check (without the ratePerCycle
+    // scaling, just the "is there anything to consume" boolean) — true when
+    // this module will actually convert something next cycle, false when
+    // it's sitting idle for lack of input (dashboard spins a cogwheel icon
+    // on the former, dims it on the latter).
+    const secondaryAvailable = !cfg.secondaryInput || getAmount(save, cfg.secondaryInput) > 0;
+    const active = !disabled && amount > 0 && secondaryAvailable;
     return {
       key,
       label: cfg.label,
@@ -62,6 +69,7 @@ export function getModuleStatuses(save) {
       cap,
       status: disabled ? 'disabled' : statusFor(amount, cap),
       disabledCyclesLeft: disabled ? save.moduleDisabled.cyclesLeft : 0,
+      active,
     };
   });
 }

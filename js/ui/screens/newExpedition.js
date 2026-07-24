@@ -3,8 +3,17 @@ import { confirmModal } from '../components/modal.js';
 import { iconButton } from '../components/iconButton.js';
 import { icon } from '../components/icons.js';
 import { attachHoverTooltip } from '../components/tooltip.js';
+import { startingResourcesPanel } from '../components/cargoBar.js';
 import { SAVE_SLOT_COUNT, HULL_COLORS, SHIP_CLASSES } from '../../data/constants.js';
+import { shipSchematicHtml } from '../../render/shipSchematic.js';
 import { screenHeader } from '../components/screenHeader.js';
+import { backAction } from '../components/commonActions.js';
+
+// Ship Systems shows the schematic colored by module status; there's no
+// save yet here to read real statuses from, so every bay just previews as
+// "nominal" — this is a preview of the hull, not a live dashboard.
+const PREVIEW_MODULE_STATUSES = ['refinery', 'electrolysis', 'hydroponics', 'reactor']
+  .map((key) => ({ key, status: 'green' }));
 
 function sectionHeader(iconName, text) {
   return el('div', { className: 'row row-tight' }, [
@@ -13,18 +22,27 @@ function sectionHeader(iconName, text) {
   ]);
 }
 
-/** A compact segmented row of equal-width buttons sharing one description line below, instead of each option carrying its own full-height card. */
-function segmented(wrap, descEl, options, activeKey, onPick) {
+/**
+ * A compact segmented row of equal-width buttons — each option's
+ * description lives in a hover tooltip (desktop) instead of an
+ * always-visible caption line below, since the option labels themselves
+ * ("Expedition"/"Relaxed", "Standard"/"Scanner-Focused"/"Fuel-Efficient")
+ * already say most of what matters; saving that line is one of several
+ * condensing passes so this whole screen fits without a scrollbar on a
+ * short phone.
+ */
+function segmented(wrap, options, activeKey, onPick) {
   wrap.innerHTML = '';
   wrap.className = 'row row-compact segmented';
   for (const opt of options) {
-    wrap.appendChild(el('button', {
+    const btn = el('button', {
       className: `btn${activeKey === opt.key ? ' btn-primary' : ''}`,
       text: opt.label,
       onClick: () => onPick(opt.key),
-    }));
+    });
+    attachHoverTooltip(btn, () => opt.description);
+    wrap.appendChild(btn);
   }
-  descEl.textContent = options.find((o) => o.key === activeKey)?.description || '';
 }
 
 export function render(container, gs) {
@@ -41,17 +59,28 @@ export function render(container, gs) {
   let selectedShipClass = 'standard';
 
   const seedInput = el('input', { type: 'text', placeholder: 'Seed code (optional) — leave blank for random' });
-  const shipNameInput = el('input', { type: 'text', placeholder: 'Leave blank for a random name', maxlength: 30 });
+  // Sits to the right of the swatches on one line (not its own row below) —
+  // trims a full row off the Ship section, one of several such merges here
+  // so this whole screen fits without a scrollbar on a short phone.
+  const shipNameInput = el('input', {
+    type: 'text', placeholder: 'Leave blank for a random name', maxlength: 30, style: 'flex:1; min-width:0;',
+  });
   const diffWrap = el('div', {});
-  const diffDesc = el('p', { className: 'subtitle', style: 'margin-top:4px' });
-  const slotWrap = el('div', { className: 'row row-compact' });
-  const hullWrap = el('div', { className: 'row row-tight' });
-  const hullDesc = el('p', { className: 'subtitle', style: 'margin-top:4px' });
+  // 'segmented' gives every slot button the same height regardless of
+  // whether its label wraps to one line ("Slot 1") or two ("Slot 2" /
+  // "(empty)") — same fix already used for the difficulty/ship-class rows.
+  const slotWrap = el('div', { className: 'row row-compact segmented' });
+  const hullWrap = el('div', { className: 'row row-tight', style: 'flex-shrink:0;' });
   const classWrap = el('div', {});
-  const classDesc = el('p', { className: 'subtitle', style: 'margin-top:4px' });
+  const schematicFill = el('div', { className: 'diagram-fill' });
+
+  function renderSchematic() {
+    const hullColor = HULL_COLORS.find((h) => h.key === selectedHullColor) || HULL_COLORS[0];
+    schematicFill.innerHTML = shipSchematicHtml(PREVIEW_MODULE_STATUSES, hullColor.color);
+  }
 
   function renderDifficulty() {
-    segmented(diffWrap, diffDesc, [
+    segmented(diffWrap, [
       { key: 'expedition', label: 'Expedition', description: 'Full stakes — life-support failure ends the run.' },
       { key: 'relaxed', label: 'Relaxed', description: 'Life support never ends the run — systems degrade instead.' },
     ], difficulty, (key) => { difficulty = key; renderDifficulty(); });
@@ -83,24 +112,23 @@ export function render(container, gs) {
         title: hull.label,
         onClick: () => {
           selectedHullColor = hull.key;
-          hullDesc.textContent = hull.label;
           renderHullColors();
+          renderSchematic();
         },
       });
       hullWrap.appendChild(swatch);
     }
-    const active = HULL_COLORS.find((h) => h.key === selectedHullColor);
-    hullDesc.textContent = active ? active.label : '';
   }
 
   function renderShipClasses() {
-    segmented(classWrap, classDesc, SHIP_CLASSES.map((c) => ({ key: c.key, label: c.label, description: c.description })), selectedShipClass, (key) => { selectedShipClass = key; renderShipClasses(); });
+    segmented(classWrap, SHIP_CLASSES.map((c) => ({ key: c.key, label: c.label, description: c.description })), selectedShipClass, (key) => { selectedShipClass = key; renderShipClasses(); });
   }
 
   renderDifficulty();
   renderSlots();
   renderHullColors();
   renderShipClasses();
+  renderSchematic();
 
   function launch() {
     gs.startNewExpedition({
@@ -113,45 +141,62 @@ export function render(container, gs) {
     });
   }
 
-  container.appendChild(el('div', { className: 'screen' }, [
-    screenHeader('New Expedition', () => gs.show('MAIN_MENU')),
-    el('div', { className: 'panel stack panel-compact' }, [
+  const schematicPanel = el('div', { className: 'panel stack panel-compact diagram-panel' }, [
+    el('p', { className: 'subtitle diagram-caption', text: 'Ship preview' }),
+    schematicFill,
+  ]);
+
+  const actionRow = el('div', { className: 'action-bar' }, [
+    backAction('Back', () => gs.show('MAIN_MENU')),
+    iconButton({
+      iconName: 'rocket',
+      label: 'Launch',
+      className: 'btn btn-primary',
+      onClick: () => {
+        if (saves[selectedSlot]) {
+          confirmModal({
+            title: 'Overwrite saved expedition?',
+            body: `Starting a new expedition will replace what's in Slot ${selectedSlot + 1}.`,
+            confirmLabel: 'Overwrite',
+            onConfirm: launch,
+          });
+        } else {
+          launch();
+        }
+      },
+    }),
+  ]);
+
+  // Save Slot / Ship / Expedition Settings share one outlined panel with
+  // divider lines between sections (same treatment as the Help screen)
+  // instead of three separate bordered panels — removes two full panels'
+  // worth of border/padding/gap overhead so the whole settings stack is
+  // short enough to leave real room for the scalable ship-preview area
+  // below on a short phone.
+  const settingsPanel = el('div', { className: 'panel stack howtofly-panel' }, [
+    el('div', { className: 'howtofly-section stack' }, [
       sectionHeader('save', 'Save Slot'),
       slotWrap,
     ]),
-    el('div', { className: 'panel stack panel-compact' }, [
+    el('div', { className: 'howtofly-section stack' }, [
       sectionHeader('ship', 'Ship'),
-      shipNameInput,
-      hullWrap,
-      hullDesc,
+      el('div', { className: 'row row-tight' }, [shipNameInput, hullWrap]),
       classWrap,
-      classDesc,
     ]),
-    el('div', { className: 'panel stack panel-compact' }, [
+    el('div', { className: 'howtofly-section stack' }, [
       sectionHeader('difficulty', 'Expedition Settings'),
       diffWrap,
-      diffDesc,
       seedInput,
     ]),
-    el('div', { className: 'spacer' }),
-    el('div', { className: 'row', style: 'justify-content:center' }, [
-      iconButton({
-        iconName: 'rocket',
-        label: 'Launch',
-        className: 'btn btn-primary',
-        onClick: () => {
-          if (saves[selectedSlot]) {
-            confirmModal({
-              title: 'Overwrite saved expedition?',
-              body: `Starting a new expedition will replace what's in Slot ${selectedSlot + 1}.`,
-              confirmLabel: 'Overwrite',
-              onConfirm: launch,
-            });
-          } else {
-            launch();
-          }
-        },
-      }),
+  ]);
+
+  container.appendChild(el('div', { className: 'screen screen-wide screen-pinned-header' }, [
+    screenHeader('New Expedition', () => gs.show('MAIN_MENU')),
+    el('div', { className: 'screen-scroll-body' }, [
+      settingsPanel,
+      startingResourcesPanel(),
+      schematicPanel,
     ]),
+    actionRow,
   ]));
 }

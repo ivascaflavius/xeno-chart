@@ -5,18 +5,23 @@ import {
   LIFE_SUPPORT_COUNTDOWN_CYCLES, DISTRESS_BEACON_MAX_USES, BIOCHEMISTRY_TYPES, LIFE_STAGES, ACHIEVEMENTS,
 } from '../../data/constants.js';
 import { buildItems as buildCodexItems } from './codex.js';
+import { gameOverSceneHtml } from '../../render/gameOverScene.js';
 
 // `subtitle` is always a short one-line summary shown right under the title;
 // the Details tab always shows a distinct, longer explanation built from the
-// actual save state (see below) — never the same sentence twice.
+// actual save state (see below) — never the same sentence twice. `iconName`
+// puts a distinct glyph next to the title per ending, instead of every
+// ending looking identical apart from its wording.
 const ENDINGS = {
   'life-support': {
     title: 'Expedition Over',
     subtitle: 'Life support failed. The expedition ends here.',
+    iconName: 'lifebuoy',
   },
   deadlock: {
     title: 'Lost in the Dark',
     subtitle: 'Stranded with nothing left to try — the expedition drifts into the void.',
+    iconName: 'blackhole',
   },
 };
 
@@ -62,6 +67,10 @@ function renderDetailsTab(gs) {
       statRow('dna', 'Life discovered', save.stats.lifeFound),
       statRow('rocket', 'Distance traveled', `${save.stats.distanceTraveled.toFixed(1)} ly`),
       statRow('cycle', 'Cycles survived', save.cycle),
+    ]),
+    el('div', { className: 'panel stack panel-compact', style: 'height:200px' }, [
+      el('p', { className: 'subtitle diagram-caption', text: 'Final moments' }),
+      el('div', { className: 'diagram-fill', html: gameOverSceneHtml(save.gameOverReason) }),
     ]),
   ]);
 }
@@ -143,7 +152,13 @@ export function render(container, gs) {
   });
 
   container.appendChild(el('div', { className: 'screen screen-wide screen-pinned-header' }, [
-    el('p', { className: 'title', text: ending.title }),
+    el('div', { className: 'row row-tight' }, [
+      el('div', {
+        style: 'width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--danger)',
+        html: icon(ending.iconName, 32),
+      }),
+      el('p', { className: 'title', text: ending.title }),
+    ]),
     el('p', { className: 'subtitle', style: 'margin-top:-4px', text: ending.subtitle }),
     tabRow,
     el('div', { className: 'screen-scroll-body' }, [

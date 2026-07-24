@@ -1,6 +1,17 @@
 import { el } from './dom.js';
 
 export function showModal({ title, body, buttons = [] }) {
+  const openedAt = performance.now();
+  // A tap that opens this modal (e.g. a starmap marker) can leave a trailing
+  // synthetic "click" in flight — on touch devices the browser dispatches it
+  // just after pointerup, targeting whatever now sits at those same screen
+  // coordinates. If a modal button lands there (easily happens when the
+  // modal's content is short), that ghost click fires it immediately,
+  // skipping the review the modal exists to provide. Swallowing clicks in
+  // the first instant after mount is imperceptible to a real tap but eats
+  // the ghost one.
+  const GHOST_CLICK_GUARD_MS = 350;
+
   function close() {
     overlay.remove();
   }
@@ -12,6 +23,7 @@ export function showModal({ title, body, buttons = [] }) {
     text: btnDef.label,
     disabled: btnDef.disabled,
     onClick: () => {
+      if (performance.now() - openedAt < GHOST_CLICK_GUARD_MS) return;
       btnDef.onClick?.(close);
       if (btnDef.closeOnClick !== false) close();
     },

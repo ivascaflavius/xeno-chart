@@ -121,6 +121,16 @@ export function playDistressCue() {
   playToneAt(t + 0.32, 440, 0.1, 0.3);
 }
 
+/** Descending two-note tone for the expedition ending — deliberately the only cue in this file that falls in pitch, so it reads as final rather than another routine action cue. */
+export function playGameOverCue() {
+  if (!settings.enabled) return;
+  const audioCtx = ensureContext();
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  playToneAt(t, 500, 0.5, 0.3, { freqEnd: 260 });
+  playToneAt(t + 0.4, 300, 0.7, 0.28, { freqEnd: 120 });
+}
+
 // Pause all audio when the tab is backgrounded, regardless of the on/off
 // setting, so nothing keeps playing unattended (§15).
 document.addEventListener('visibilitychange', () => {

@@ -144,6 +144,114 @@ a {
   white-space: nowrap;
 }
 
+/* Bottom action bar shared by every gameplay screen (Galactic/System/
+   Planetary/Ship View). Every button gets an equal flex share so the bar
+   always fills its full width regardless of how many actions it holds — on
+   a narrow phone the label-hiding rule below keeps that from squeezing
+   below a comfortable tap target; on tablet/desktop there's enough room to
+   keep both icon and label while still spreading evenly. */
+.action-bar {
+  display: flex;
+  gap: 6px;
+}
+
+.action-bar > .btn {
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+@media (max-width: 767px) {
+  .action-bar .icon-btn span:last-child {
+    display: none;
+  }
+}
+
+/* Text label shown alongside a chip's icon (health strip chips, hazard
+   chip) — icon-only on mobile (no room, and the tap target is already the
+   whole chip), shown from tablet width up since there's space to spell out
+   what each light means instead of relying on a hover-only tooltip. */
+.chip-label {
+  display: none;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+@media (min-width: 768px) {
+  .chip-label {
+    display: inline;
+  }
+}
+
+/* Warning-light strip (ui/components/healthStrip.js) — grayed out by
+   default (base .icon-chip look), lit via .status-amber/.status-red when
+   something needs attention. Nested as the last element of a .cargo-section
+   row (see below), so it shares that row's flex:1 and spreads its own chips
+   out evenly to fill it in turn. */
+.health-strip {
+  display: flex;
+  gap: 6px;
+}
+
+.health-strip .health-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  height: 34px;
+  padding: 0 4px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.health-strip .health-chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Hazard indicator (ui/components/hazardChip.js) — sits at the right edge of
+   a system's info panel (galaxy/star/planet), grayed out when clear so the
+   panel is the same height whether or not a hazard rolled, lit amber and
+   tappable for detail when one is present. Compound selector so it reliably
+   overrides the bare .icon-chip sizing regardless of stylesheet order. */
+.icon-chip.hazard-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .icon-chip.hazard-chip {
+    width: auto;
+    padding: 0 10px;
+  }
+}
+
+/* Health/Ship/Cargo row (ui/components/cargoBar.js's shipStatusPanel) — icon
+   chip + label stay their natural width, the data (health chips or a
+   resourceIconRow) fills whatever's left, so label and data share one line
+   instead of the label sitting on its own line above. */
+.cargo-section > *:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The label itself gets a fixed width instead of sizing to its own text —
+   "Health"/"Ship"/"Cargo" are different lengths, so without this the data
+   column started at a different x position on each row. */
+.cargo-section-label {
+  min-width: 58px;
+  flex-shrink: 0;
+}
+
 .spacer {
   flex: 1;
 }
@@ -356,15 +464,6 @@ a {
   height: 6px;
 }
 
-.flow-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  color: var(--text-faint);
-  font-size: 0.75rem;
-}
-
 /* text-styled button (e.g. the main menu's commander-name link) — looks like
    an <a>, but triggers in-app navigation rather than a real hyperlink */
 .link-button {
@@ -445,9 +544,16 @@ button.icon-chip:hover {
   gap: 10px;
 }
 
+/* .btn's min-width:44px can force this button wider than its single icon
+   child — without centering, the icon (a flex-start default) sits flush
+   left instead of in the middle of that extra width. Matters most for
+   screenHeader's top-left Back/Menu button, which (unlike the action bar's
+   buttons) isn't itself stretched to fill a row, so nothing else was
+   centering it. */
 .icon-btn.icon-only {
   padding: 8px;
   gap: 0;
+  justify-content: center;
 }
 
 .btn-icon {
@@ -656,13 +762,27 @@ label {
   gap: 10px;
 }
 
-/* System View's planet grid — same tile styling (.codex-entry) as the Codex,
-   just smaller/tighter so a full system's planets fit without pushing the
-   orbit diagram below the fold on mobile. */
-.planet-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
-  gap: 8px;
+/* System View's planet bar — same tile styling (.codex-entry) as the Codex,
+   laid out as one outlined row instead of a wrapping grid. Tiles keep a
+   fixed size and get spread evenly across the bar (space-evenly) rather
+   than each stretching to fill it — one planet reads as a single centered
+   icon instead of ballooning to the full row width/height, and the bar's
+   own height stays constant regardless of how many planets there are.
+   flex-shrink kicks in only once there are enough planets that fixed-size
+   tiles would actually overflow the row. */
+.planet-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 6px;
+  min-height: 64px;
+}
+
+/* System View's planet bar has no caption underneath — keep it a plain
+   square icon tile instead of picking up the Codex grid's extra caption gap. */
+.planet-bar .codex-entry {
+  flex: 0 1 56px;
+  aspect-ratio: 1;
 }
 
 .codex-entry {
@@ -676,12 +796,6 @@ label {
   justify-content: center;
   gap: 4px;
   padding: 6px;
-}
-
-/* System View's planet grid has no caption underneath — keep it a plain
-   square icon tile instead of picking up the Codex grid's extra caption gap. */
-.planet-grid .codex-entry {
-  aspect-ratio: 1;
 }
 
 .codex-entry-icon {
@@ -917,6 +1031,64 @@ label {
   to { transform: scale(1); opacity: 1; }
 }
 
+/* Full-screen dramatic flash played right as the Game Over screen mounts
+   underneath it (ui/components/gameOverTransition.js) — a run can end mid
+   action with zero warning, so an instant screen swap read as "out of
+   nowhere"; this holds a dark red vignette for a beat before fading away to
+   reveal the ending screen, instead of just cutting to it. */
+.gameover-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: radial-gradient(ellipse at center, rgba(216, 97, 95, 0.25) 0%, rgba(5, 7, 13, 0.96) 70%);
+  opacity: 0;
+  animation: gameover-flash 1.4s ease-in-out forwards;
+  pointer-events: none;
+}
+
+@keyframes gameover-flash {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Game Over "final moments" scene (render/gameOverScene.js). */
+.gameover-pulse-core {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: gameover-pulse-decay 4s ease-in-out infinite;
+}
+
+@keyframes gameover-pulse-decay {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50% { opacity: 0.9; transform: scale(1.1); }
+}
+
+.gameover-flicker-dot {
+  animation: gameover-flicker 2.4s ease-in-out infinite;
+}
+
+@keyframes gameover-flicker {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.8; }
+}
+
+.gameover-drift {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: gameover-drift 7s ease-in-out infinite;
+}
+
+@keyframes gameover-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(-8px, 6px) rotate(6deg); }
+}
+
+.gameover-void-pulse {
+  animation: special-object-shimmer 3.5s ease-in-out infinite;
+}
+
 .confetti-piece {
   position: absolute;
   top: 0;
@@ -944,6 +1116,26 @@ label {
 .resource-icon.status-disabled { color: var(--danger); }
 .progress-fill.status-disabled {
   background: repeating-linear-gradient(45deg, var(--danger), var(--danger) 6px, #2a1516 6px, #2a1516 12px);
+}
+
+/* Ship Systems module row — a small cogwheel that actually spins while the
+   module is converting something this cycle, and sits still and dimmed
+   when idle (no input to consume, or disabled) — the status dot alone
+   can't distinguish "green because there's plenty banked" from "green but
+   doing nothing right now because input just ran dry". */
+.module-cog {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+.module-cog.spinning {
+  color: var(--ok);
+  animation: special-object-spin 2.4s linear infinite;
+}
+
+.module-cog.idle {
+  opacity: 0.4;
 }
 
 /* nebula backgrounds (§15a, Phase 3) — purely decorative, never intercepts input */

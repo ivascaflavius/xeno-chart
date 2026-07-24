@@ -109,8 +109,18 @@ function systemCenterStarHtml(center, star) {
   `;
 }
 
-/** Orbit diagram for a system's planets, for the bottom of System View. */
-export function systemOrbitHtml(sys) {
+/**
+ * Orbit diagram for a system's planets, for the bottom of System View.
+ * `scanned` (default true) gates everything that isn't already known from
+ * the "N planets detected" subtitle above it — pre-scan, the ring count and
+ * spacing still show (planet count is public the moment a system is
+ * detected), but each marker is a uniform gray placeholder instead of the
+ * real class/color/binary-pairing, so the diagram doesn't spoil what a
+ * close-range scan is actually for. Without this, System View either had to
+ * hide the whole diagram pre-scan (leaving a hole where the action bar
+ * looked like it was floating in empty space) or show it fully populated.
+ */
+export function systemOrbitHtml(sys, { scanned = true } = {}) {
   const count = sys.planets.length;
   const size = 300;
   const center = size / 2;
@@ -129,7 +139,6 @@ export function systemOrbitHtml(sys) {
     const r = baseRadius + spacing * i;
     rings.push(`<circle cx="${center}" cy="${center}" r="${r.toFixed(1)}" fill="none" stroke="#3a4358" stroke-width="1" stroke-dasharray="3 4"/>`);
 
-    const withMinerals = hasMinerals(planet);
     const sharedOrbitArgs = {
       center,
       radius: r,
@@ -139,6 +148,15 @@ export function systemOrbitHtml(sys) {
       durationS: 18 + i * 7,
       reverse: i % 2 === 1,
     };
+
+    if (!scanned) {
+      markers.push(orbitingMarker({
+        ...sharedOrbitArgs, dotR: 5, fill: '#5a6072', opacity: 0.5,
+      }));
+      return;
+    }
+
+    const withMinerals = hasMinerals(planet);
     if (planet.binaryCompanion) {
       markers.push(binaryOrbitingMarker({
         ...sharedOrbitArgs,
@@ -164,9 +182,10 @@ export function systemOrbitHtml(sys) {
 
   // Habitable-zone band (§6/§7 polish) — a soft ring behind everything else
   // marking which orbits the life-bias heuristic actually favors, so "why did
-  // this planet get life and that one didn't" has a visible answer.
+  // this planet get life and that one didn't" has a visible answer. Held
+  // back pre-scan along with everything else planet-specific.
   let habitableZone = '';
-  if (count > 0) {
+  if (scanned && count > 0) {
     const { lo, hi } = habitableIndexRange(count, sys.star.class);
     const bandHalfWidth = Math.max(spacing * 0.35, 8);
     const innerR = Math.max(0, baseRadius + spacing * lo - bandHalfWidth);

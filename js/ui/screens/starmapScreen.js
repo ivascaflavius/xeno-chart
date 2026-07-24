@@ -5,38 +5,29 @@ import { getSystemsInRadius } from '../../procgen/galaxy.js';
 import { effectiveSensorRange } from '../../systems/travel.js';
 import { icon } from '../components/icons.js';
 import { iconButton } from '../components/iconButton.js';
-import { statusBanners } from '../components/statusBanners.js';
-import { cargoBar } from '../components/cargoBar.js';
+import { shipStatusPanel } from '../components/cargoBar.js';
+import { hazardChip } from '../components/hazardChip.js';
+import { screenHeader } from '../components/screenHeader.js';
 import { openJumpModal } from './jumpPlanning.js';
 import { enqueueCelebration } from '../components/celebration.js';
+import {
+  menuAction, distressBeaconAction, codexAction, journalAction,
+} from '../components/commonActions.js';
 
 export function render(container, gs) {
   const save = gs.save;
   const sys = gs.currentSystem();
 
-  // Journal used to sit at the top-right of the header, but that's the exact
-  // corner celebration toasts pop up in (§11a) — the two kept covering each
-  // other. Moved down to the action row, next to Codex, instead.
-  const headerRow = el('div', { className: 'row row-tight screen-header' }, [
-    iconButton({
-      iconName: 'menu', label: 'Menu', iconOnly: true, onClick: () => gs.show('PAUSED'),
-    }),
-    el('p', { className: 'title', text: 'Galactic View' }),
-  ]);
-
   const galaxyIcon = el('div', { style: 'width:52px;height:52px;flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--text-dim)', html: icon('galaxy', 32) });
   const galaxyPanel = el('div', { className: 'panel row panel-compact' }, [
     galaxyIcon,
-    el('div', { className: 'stack', style: 'gap:2px' }, [
+    el('div', { className: 'stack', style: 'gap:2px; flex:1; min-width:0' }, [
       el('p', { className: 'title', text: save.galaxyName, style: 'font-size:1.25rem' }),
       el('p', { className: 'subtitle', text: `${save.difficulty === 'relaxed' ? 'Relaxed' : 'Expedition'} · Cycle ${save.cycle}` }),
       el('p', { className: 'subtitle', text: `${save.shipName} · ${sys.name}` }),
     ]),
+    hazardChip(sys.hazard),
   ]);
-
-  const hazardBanner = sys.hazard
-    ? el('div', { className: 'banner banner-warn', text: `${sys.hazard.label} in this system.` })
-    : null;
 
   const starmap = createStarmap((systemId) => {
     if (systemId === save.position.systemId) {
@@ -50,7 +41,8 @@ export function render(container, gs) {
   const hasNewToReveal = nearby.some((stub) => !save.discoveries[stub.id]);
   const canAffordScan = save.resources.charge >= LONG_RANGE_SCAN_CHARGE_COST;
   const canScan = canAffordScan && hasNewToReveal;
-  const actionRow = el('div', { className: 'row row-compact' }, [
+  const actionRow = el('div', { className: 'action-bar' }, [
+    menuAction(gs),
     iconButton({
       iconName: 'scan',
       label: hasNewToReveal ? `Scan (${LONG_RANGE_SCAN_CHARGE_COST})` : 'Done',
@@ -60,17 +52,18 @@ export function render(container, gs) {
     }),
     iconButton({ iconName: 'currentSystem', label: 'System', onClick: () => gs.show('SYSTEM_VIEW') }),
     iconButton({ iconName: 'ship', label: 'Ship', onClick: () => gs.show('SHIP_SYSTEMS') }),
-    iconButton({ iconName: 'codex', label: 'Codex', onClick: () => gs.show('CODEX') }),
-    iconButton({ iconName: 'journal', label: 'Journal', onClick: () => gs.show('JOURNAL') }),
+    distressBeaconAction(gs),
+    codexAction(gs),
+    journalAction(gs),
   ]);
 
-  container.appendChild(el('div', { className: 'screen screen-wide' }, [
-    headerRow,
-    galaxyPanel,
-    hazardBanner,
-    ...statusBanners(gs),
-    cargoBar(save),
-    starmap.el,
+  container.appendChild(el('div', { className: 'screen screen-wide screen-pinned-header' }, [
+    screenHeader('Galactic View', () => gs.show('PAUSED'), 'menu'),
+    el('div', { className: 'screen-scroll-body' }, [
+      galaxyPanel,
+      shipStatusPanel(gs),
+      starmap.el,
+    ]),
     actionRow,
   ]));
 

@@ -42,3 +42,8 @@ export function vibrateWarning() {
 export function vibrateModuleAlert() {
   vibrate([30]);
 }
+
+/** Long, slow pulse for the expedition-ending transition — distinct from every other (short, punchy) pattern here. */
+export function vibrateGameOver() {
+  vibrate([120, 80, 200]);
+}

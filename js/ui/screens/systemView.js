@@ -1,7 +1,7 @@
 import { el } from '../components/dom.js';
 import { planetPortrait, starPortrait, lockedPortrait } from '../../render/portraits.js';
 import { CLOSE_RANGE_SCAN_CHARGE_COST } from '../../data/constants.js';
-import { cargoBar } from '../components/cargoBar.js';
+import { shipStatusPanel } from '../components/cargoBar.js';
 import { attachHoverTooltip } from '../components/tooltip.js';
 import { iconButton } from '../components/iconButton.js';
 import { closeScanChargeMultiplier } from '../../systems/hazards.js';
@@ -9,9 +9,13 @@ import { planetDesignation } from '../../procgen/names.js';
 import { icon } from '../components/icons.js';
 import { systemOrbitHtml } from '../../render/orbitDiagram.js';
 import { starStats } from '../../procgen/stats.js';
+import { relativeColorFor, SUN_TEMP_K } from '../../render/tempColor.js';
+import { hazardChip } from '../components/hazardChip.js';
 import { screenHeader } from '../components/screenHeader.js';
-import { statusBanners } from '../components/statusBanners.js';
 import { openJumpModal } from './jumpPlanning.js';
+import {
+  backAction, distressBeaconAction, codexAction, journalAction,
+} from '../components/commonActions.js';
 
 function planetHasMinerals(planet) {
   return planet.minerals && Object.keys(planet.minerals).length > 0;
@@ -50,7 +54,6 @@ export function render(container, gs) {
   const scanned = discovery?.tier === 'close';
   const scanCost = Math.round(CLOSE_RANGE_SCAN_CHARGE_COST * closeScanChargeMultiplier(sys.hazard));
   const canAffordScan = gs.save.resources.charge >= scanCost;
-  const flash = gs.takeFlashMessage();
 
   function doScan() {
     gs.closeRangeScan(sys.id);
@@ -60,34 +63,56 @@ export function render(container, gs) {
   attachHoverTooltip(starIcon, () => `<strong>${sys.name}</strong><br>${sys.star.label} · ${sys.planets.length} planet${sys.planets.length === 1 ? '' : 's'}`);
 
   const stats = starStats(sys.star);
-  const statsText = `${stats.temperatureK !== null ? `${stats.temperatureK.toLocaleString()} K` : 'N/A'} · ${stats.radiusSolar} R☉ · ${stats.massSolar} M☉`;
+  // Color-graded against the Sun — blue smaller/cooler, green Sun-like, red
+  // bigger/hotter — so a glance at each number places it without doing the
+  // mental math against a spectral-class letter. Radius/mass are already
+  // expressed as a ratio to the Sun, so 1 is the reference for those.
+  const tempColor = relativeColorFor(stats.temperatureK, SUN_TEMP_K);
+  const tempSpan = el('span', {
+    style: tempColor ? `color:${tempColor}` : undefined,
+    text: stats.temperatureK !== null ? `${stats.temperatureK.toLocaleString()} K` : 'N/A',
+  });
+  const radiusColor = relativeColorFor(stats.radiusSolar, 1);
+  const radiusSpan = el('span', { style: radiusColor ? `color:${radiusColor}` : undefined, text: `${stats.radiusSolar} R☉` });
+  const massColor = relativeColorFor(stats.massSolar, 1);
+  const massSpan = el('span', { style: massColor ? `color:${massColor}` : undefined, text: `${stats.massSolar} M☉` });
   const starPanel = el('div', { className: 'panel row panel-compact' }, [
     starIcon,
-    el('div', { className: 'stack', style: 'gap:2px' }, [
+    el('div', { className: 'stack', style: 'gap:2px; flex:1; min-width:0' }, [
       el('p', { className: 'title', text: sys.name, style: 'font-size:1.25rem' }),
-      el('p', { className: 'subtitle', text: `${sys.star.label} · ${sys.planets.length} planet${sys.planets.length === 1 ? '' : 's'} detected` }),
-      el('p', { className: 'subtitle', text: statsText }),
+      el('p', { className: 'subtitle', text: `${sys.star.label} · ${sys.planets.length} planet${sys.planets.length === 1 ? '' : 's'}` }),
+      el('p', { className: 'subtitle' }, [tempSpan, ' · ', radiusSpan, ' · ', massSpan]),
     ]),
+    hazardChip(sys.hazard),
   ]);
 
-  const hazardPanel = sys.hazard
-    ? el('div', { className: 'banner banner-warn', text: `${sys.hazard.label} — this system's hazards are already factoring into your costs here.` })
-    : null;
+  // Always rendered — pre-scan a wormhole's presence stays hidden the same
+  // way planet colors/minerals do, so this can't read "no wormhole" before
+  // that's actually known, but the row itself (and the panel's height) never
+  // appears/disappears depending on what's here.
+  const wormholeKnown = scanned;
+  const wormholePresent = wormholeKnown && !!sys.wormholeTo;
+  const wormholePanel = el('div', { className: 'panel row panel-compact' }, [
+    el('span', { className: 'icon-chip', html: icon('wormhole', 16) }),
+    el('span', {
+      text: !wormholeKnown
+        ? 'Wormhole presence unknown — close-range scan for detail.'
+        : (wormholePresent ? 'A wormhole connects this system to a distant one.' : 'No wormhole in this system.'),
+      style: 'flex:1',
+    }),
+    iconButton({
+      iconName: 'wormhole',
+      label: 'Jump',
+      className: wormholePresent ? 'btn btn-primary' : 'btn',
+      disabled: !wormholePresent,
+      onClick: () => openJumpModal(gs, sys.wormholeTo, { viaWormhole: true }),
+    }),
+  ]);
 
-  const wormholePanel = (sys.wormholeTo && scanned)
-    ? el('div', { className: 'panel row panel-compact' }, [
-      el('span', { className: 'icon-chip', html: icon('wormhole', 16) }),
-      el('span', { text: 'A wormhole connects this system to a distant one.', style: 'flex:1' }),
-      iconButton({
-        iconName: 'wormhole',
-        label: 'Jump',
-        className: 'btn btn-primary',
-        onClick: () => openJumpModal(gs, sys.wormholeTo, { viaWormhole: true }),
-      }),
-    ])
-    : null;
-
-  const grid = el('div', { className: 'planet-grid' });
+  const grid = el('div', { className: 'panel panel-compact planet-bar' });
+  if (scanned && sys.planets.length === 0) {
+    grid.appendChild(el('p', { className: 'subtitle', style: 'width:100%; text-align:center;', text: 'No planets detected' }));
+  }
   for (const planet of sys.planets) {
     const dimmed = scanned && !planetHasMinerals(planet);
     const entry = el('div', {
@@ -108,40 +133,38 @@ export function render(container, gs) {
     grid.appendChild(entry);
   }
 
-  const orbitPanel = scanned
-    ? el('div', { className: 'panel stack panel-compact diagram-panel' }, [
-      el('p', { className: 'subtitle diagram-caption', text: 'Orbital view' }),
-      el('div', { className: 'diagram-fill', html: systemOrbitHtml(sys) }),
-    ])
-    : null;
+  // Rendered even before a close-range scan — the star and planet count are
+  // already known (see the subtitle above), so a placeholder ring-per-planet
+  // reads as "there's something here, scan for detail" instead of leaving a
+  // gap where the action bar looks like it's floating in empty space.
+  const orbitPanel = el('div', { className: 'panel stack panel-compact diagram-panel' }, [
+    el('p', { className: 'subtitle diagram-caption', text: scanned ? 'Orbital view' : 'Orbital view (scan for detail)' }),
+    el('div', { className: 'diagram-fill', html: systemOrbitHtml(sys, { scanned }) }),
+  ]);
 
-  const scanRow = !scanned
-    ? el('div', { className: 'panel row panel-compact' }, [
-      el('span', {
-        className: 'subtitle',
-        text: 'Planets are unscanned — close-range scan for full detail.',
-        style: 'flex:1',
-      }),
-      iconButton({
-        iconName: 'closeScan',
-        label: `Scan (${scanCost})`,
-        className: 'btn btn-primary',
-        disabled: !canAffordScan,
-        onClick: doScan,
-      }),
-    ])
-    : null;
+  const actionRow = el('div', { className: 'action-bar' }, [
+    backAction('Back', () => gs.show('STARMAP')),
+    iconButton({
+      iconName: 'closeScan',
+      label: scanned ? 'Scanned' : `Scan (${scanCost})`,
+      className: 'btn btn-primary',
+      disabled: scanned || !canAffordScan,
+      onClick: doScan,
+    }),
+    distressBeaconAction(gs),
+    codexAction(gs),
+    journalAction(gs),
+  ]);
 
-  container.appendChild(el('div', { className: 'screen screen-wide' }, [
+  container.appendChild(el('div', { className: 'screen screen-wide screen-pinned-header' }, [
     screenHeader('System View', () => gs.show('STARMAP')),
-    starPanel,
-    flash ? el('div', { className: 'banner banner-info', text: flash }) : null,
-    hazardPanel,
-    ...statusBanners(gs),
-    cargoBar(gs.save),
-    wormholePanel,
-    scanRow,
-    grid,
-    orbitPanel,
+    el('div', { className: 'screen-scroll-body' }, [
+      starPanel,
+      shipStatusPanel(gs),
+      orbitPanel,
+      wormholePanel,
+      grid,
+    ]),
+    actionRow,
   ]));
 }
