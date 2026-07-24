@@ -98,15 +98,14 @@ export function render(container, gs) {
     el('div', { className: 'diagram-fill', html: shipSchematicHtml(moduleStatuses, hullColor.color) }),
   ]);
 
-  const actionRow = el('div', { className: 'action-bar' }, [
+  const actionRow = el('div', { className: 'action-bar action-bar-labeled' }, [
     backAction('Back', () => gs.show('STARMAP')),
-    distressBeaconAction(gs),
     codexAction(gs),
     journalAction(gs),
   ]);
 
   container.appendChild(el('div', { className: 'screen screen-wide screen-pinned-header' }, [
-    screenHeader('Ship Systems', () => gs.show('STARMAP')),
+    screenHeader('Ship Systems', () => gs.show('STARMAP'), 'back', distressBeaconAction(gs)),
     el('div', { className: 'screen-scroll-body' }, [
       shipPanel,
       shipStatusPanel(gs),

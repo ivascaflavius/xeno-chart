@@ -291,6 +291,9 @@ a {
   align-items: center;
 }
 
+/* The title's own flex:1 already consumes all space left after the fixed-
+   width Back button and (optional) right-side action, which is what pushes
+   that right action to the far edge — no separate spacer element needed. */
 .screen-header .title {
   flex: 1;
   min-width: 0;
@@ -319,6 +322,20 @@ a {
 
 .panel-compact {
   padding: 8px 10px;
+}
+
+/* Groups System View's Planets+Wormhole row (or Planetary View's Minerals+
+   Biosignature row) into one flex column — no forced min-height here
+   anymore. That parity-via-min-height used to leave dead trailing space
+   inside this block on systems/planets whose content came in short of it,
+   instead of handing that room to the orbit/moon diagram panel right below
+   (which already has flex:1 and wants it). Sizing to natural content and
+   letting the diagram panel absorb the rest reads better than an empty gap
+   floating above it. */
+.surface-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 /* Tabbed screens (Codex, Journal, Help) keep their title/back button and tab
@@ -360,13 +377,16 @@ a {
   position: relative;
 }
 
-/* The generated portrait svgs (planetPortrait etc.) have no width/height of
-   their own, so left alone a browser sizes them from their intrinsic
-   (square) viewBox ratio and ignores a non-square parent's actual height,
-   overflowing it. Forcing both dimensions here makes the svg really fill
-   whatever box it's given, and its own viewBox + default preserveAspectRatio
-   ("meet") then letterboxes/centers the circle inside that box without
-   ever stretching it into an oval. */
+/* The generated portrait/diagram svgs have no width/height of their own, so
+   left alone a browser sizes them from their intrinsic (square, or for the
+   ship schematic portrait-shaped) viewBox ratio and ignore a differently-
+   shaped parent, overflowing it. Forcing both dimensions here makes the svg
+   really fill whatever box it's given; its own viewBox + default
+   preserveAspectRatio ("meet") then centers/letterboxes the content inside
+   without stretching it — since diagram-panel is normally much wider than
+   tall, that letterboxing lands on the left/right, not top/bottom, so the
+   content still fills the box's full height with no gap under the caption
+   in the common case. */
 .diagram-fill svg {
   width: 100%;
   height: 100%;

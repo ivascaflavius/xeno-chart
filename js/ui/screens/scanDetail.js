@@ -105,9 +105,11 @@ export function render(container, gs) {
       el('p', { className: 'title', text: planetDesignation(sys.name, planet.index), style: 'font-size:1.25rem' }),
       el('p', {
         className: 'subtitle',
-        text: planet.binaryCompanion ? `${planet.label} · binary pair with ${withIndefiniteArticle(planet.binaryCompanion.label)}` : planet.label,
+        text: planet.binaryCompanion
+          ? `${planet.label} · binary pair with ${withIndefiniteArticle(planet.binaryCompanion.label)} · ${moonCount} moon${moonCount === 1 ? '' : 's'}`
+          : `${planet.label} · ${moonCount} moon${moonCount === 1 ? '' : 's'}`,
       }),
-      el('p', { className: 'subtitle' }, [tempSpan, ' · ', radiusSpan, ' · ', massSpan, ` · ${moonCount} moon${moonCount === 1 ? '' : 's'}`]),
+      el('p', { className: 'subtitle' }, [tempSpan, ' · ', radiusSpan, ' · ', massSpan]),
     ]),
     hazardChip(sys.hazard),
   ]);
@@ -125,11 +127,10 @@ export function render(container, gs) {
   const allDepleted = mineralData.length > 0 && mineralData.every((m) => m.remaining <= 0);
   const canHarvestAny = mineralData.some((m) => m.remaining > 0 && m.roomLeft > 0);
 
-  let harvestLabel = 'Harvest All';
+  let harvestLabel = 'Harvest';
   if (mineralData.length === 0) harvestLabel = 'No Minerals';
-  else if (mineralData.length === 1) harvestLabel = `Harvest ${mineralData[0].mineral}`;
-  if (allDepleted) harvestLabel = 'Fully Harvested';
-  else if (mineralData.length > 0 && !canHarvestAny) harvestLabel = 'Cargo Full';
+  else if (allDepleted) harvestLabel = 'Harvested';
+  else if (!canHarvestAny) harvestLabel = 'Cargo Full';
 
   // Always rendered (into the action bar below), even with nothing to
   // harvest, so the bar's button count stays the same across every planet
@@ -158,7 +159,7 @@ export function render(container, gs) {
   // consistent across every planet instead of it appearing/vanishing.
   const sampleButton = iconButton({
     iconName: 'sample',
-    label: 'Take Sample',
+    label: sampled ? 'Sampled' : 'Sample',
     className: 'btn btn-primary',
     disabled: !planet.life || sampled,
     onClick: () => gs.takeSample(planet.id),
@@ -183,22 +184,35 @@ export function render(container, gs) {
     text: bioText,
   }));
 
-  // Unified surface panel — minerals and biosignature share one outlined
-  // bar (matching the ship/cargo/health panel's row-per-topic layout)
-  // instead of two separate panels whose combined height used to shift
-  // around based on mineral count and life-sample state. Each section is
-  // icon+label on its own line, data below — matching System View's
-  // now-taller stack (its wormhole panel added a row Planetary View didn't
-  // have), rather than a shorter one-line-per-topic layout that no longer
-  // lined up between the two screens.
-  const surfacePanel = el('div', { className: 'panel stack panel-compact cargo-bar-panel' }, [
+  // Minerals and biosignature as two separate panels (mirroring System
+  // View's planet-grid / wormhole-panel split) rather than one combined
+  // block — each now sits in the new top action bar's own row below it,
+  // matching the same slot System View's Planets+Wormhole block occupies.
+  const mineralsPanel = el('div', { className: 'panel stack panel-compact cargo-bar-panel' }, [
     twoLineSection('planet', 'Minerals', null, el('div', { className: 'minerals-panel' }, [
       mineralData.length
         ? resourceIconRow(mineralData.map((m) => ({ key: m.mineral, amount: m.remaining, cap: m.total })))
         : el('p', { className: 'subtitle', text: 'None detected' }),
     ])),
+  ]);
+  const biosignaturePanel = el('div', { className: 'panel stack panel-compact cargo-bar-panel' }, [
     biosignatureRow,
   ]);
+  // Groups Minerals and Biosignature into one block, occupying the same
+  // slot System View's Planets+Wormhole block does (directly above the
+  // orbit diagram) — sized to its own natural content, so the diagram
+  // panel's flex:1 gets whatever room is left instead of leaving it empty
+  // here.
+  const surfaceBlock = el('div', { className: 'surface-block' }, [mineralsPanel, biosignaturePanel]);
+
+  // A moonless planet has no orbit rings to leave room for, so the old
+  // fixed 50% sizing (a 25%-per-side margin meant to give moon rings space
+  // to clear the portrait) just read as a big empty gap around a small
+  // planet — fill the whole box instead when there's nothing orbiting it
+  // (the portrait's own meet-scaling still keeps it uncropped and centered,
+  // same as every other still portrait elsewhere in the game).
+  const planetBoxPct = moonCount ? 50 : 100;
+  const planetBoxOffset = (100 - planetBoxPct) / 2;
 
   const orbitFill = el('div', { className: 'diagram-fill' }, [
     // A binary planet replaces the usual still, centered portrait with both
@@ -207,7 +221,10 @@ export function render(container, gs) {
     // to read as a satellite, not a pair.
     planet.binaryCompanion
       ? el('div', { html: binaryPairOverlayHtml(planet.id, planet) })
-      : el('div', { style: 'position:absolute; left:25%; top:25%; width:50%; height:50%', html: planetPortrait(planet.id, planet, { decorate: false }) }),
+      : el('div', {
+        style: `position:absolute; left:${planetBoxOffset}%; top:${planetBoxOffset}%; width:${planetBoxPct}%; height:${planetBoxPct}%`,
+        html: planetPortrait(planet.id, planet, { decorate: false }),
+      }),
     el('div', { html: moonOrbitOverlayHtml(planet.id, moonCount) }),
   ]);
 
@@ -225,22 +242,32 @@ export function render(container, gs) {
     orbitFill,
   ]);
 
-  const actionRow = el('div', { className: 'action-bar' }, [
-    backAction('Back', () => gs.show('SYSTEM_VIEW')),
+  // Routine actions live here, next to the content they act on; the bottom
+  // bar is pure navigation (same 3 buttons on every gameplay screen). A
+  // second, labeled back button ("Star", short for Star System) sits here
+  // too — quicker to reach mid-screen than the header's icon-only Back or
+  // scrolling down to the bottom bar. All three labels here are kept short
+  // since it's now a 3-button row sharing space evenly.
+  const topActionRow = el('div', { className: 'action-bar action-bar-labeled' }, [
+    backAction('Star', () => gs.show('SYSTEM_VIEW')),
     harvestButton,
     sampleButton,
-    distressBeaconAction(gs),
+  ]);
+
+  const actionRow = el('div', { className: 'action-bar action-bar-labeled' }, [
+    backAction('Back', () => gs.show('SYSTEM_VIEW')),
     codexAction(gs),
     journalAction(gs),
   ]);
 
   container.appendChild(el('div', { className: 'screen screen-wide screen-pinned-header' }, [
-    screenHeader('Planetary View', () => gs.show('SYSTEM_VIEW')),
+    screenHeader('Planetary View', () => gs.show('SYSTEM_VIEW'), 'back', distressBeaconAction(gs)),
     el('div', { className: 'screen-scroll-body' }, [
       planetPanel,
       shipStatusPanel(gs),
+      topActionRow,
+      surfaceBlock,
       orbitPanel,
-      surfacePanel,
     ]),
     actionRow,
   ]));

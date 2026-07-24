@@ -722,7 +722,7 @@ class GameState {
       this.addJournalEntry({
         type: 'distress',
         text: 'Sent a distress beacon — received emergency fuel',
-        iconName: 'distress',
+        iconName: 'beacon',
       });
       const isGameOver = this.maybeEndInDeadlock();
       this.persistSave();

@@ -17,6 +17,10 @@ const PATHS = {
   back: '<path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
   harvest: '<path d="M12 3v12M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   distress: '<path d="M12 3 2 20h20z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/>',
+  // Distress beacon: a dot broadcasting arcs fanning outward — distinct from
+  // `scan`'s concentric full-circle bullseye, since both now appear on the
+  // same screens (header vs. health strip/action bar).
+  beacon: '<circle cx="12" cy="16" r="2.2" fill="currentColor"/><path d="M8.8 12.2a4.5 4.5 0 0 1 6.4 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M6.2 9.6a8.2 8.2 0 0 1 11.6 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.65"/><path d="M3.6 7a11.8 11.8 0 0 1 16.8 0" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.4"/>',
   rocket: '<path d="M12 2 15 12 9 12Z" fill="currentColor"/><rect x="9" y="12" width="6" height="6" fill="currentColor"/><path d="M10 18 12 22 14 18Z" fill="currentColor" opacity="0.75"/>',
   resume: '<path d="M4 12a8 8 0 1 1 2.5 5.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 12v5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   help: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.3a2.7 2.7 0 1 1 3.7 2.5c-.7.4-.9.9-.9 1.6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="currentColor"/>',

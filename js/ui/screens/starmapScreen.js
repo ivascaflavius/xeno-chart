@@ -41,8 +41,10 @@ export function render(container, gs) {
   const hasNewToReveal = nearby.some((stub) => !save.discoveries[stub.id]);
   const canAffordScan = save.resources.charge >= LONG_RANGE_SCAN_CHARGE_COST;
   const canScan = canAffordScan && hasNewToReveal;
-  const actionRow = el('div', { className: 'action-bar' }, [
-    menuAction(gs),
+
+  // Routine actions live here, next to the map they act on; the bottom bar
+  // is pure navigation (same 3 buttons on every gameplay screen).
+  const topActionRow = el('div', { className: 'action-bar action-bar-labeled' }, [
     iconButton({
       iconName: 'scan',
       label: hasNewToReveal ? `Scan (${LONG_RANGE_SCAN_CHARGE_COST})` : 'Done',
@@ -52,16 +54,20 @@ export function render(container, gs) {
     }),
     iconButton({ iconName: 'currentSystem', label: 'System', onClick: () => gs.show('SYSTEM_VIEW') }),
     iconButton({ iconName: 'ship', label: 'Ship', onClick: () => gs.show('SHIP_SYSTEMS') }),
-    distressBeaconAction(gs),
+  ]);
+
+  const actionRow = el('div', { className: 'action-bar action-bar-labeled' }, [
+    menuAction(gs),
     codexAction(gs),
     journalAction(gs),
   ]);
 
   container.appendChild(el('div', { className: 'screen screen-wide screen-pinned-header' }, [
-    screenHeader('Galactic View', () => gs.show('PAUSED'), 'menu'),
+    screenHeader('Galactic View', () => gs.show('PAUSED'), 'menu', distressBeaconAction(gs)),
     el('div', { className: 'screen-scroll-body' }, [
       galaxyPanel,
       shipStatusPanel(gs),
+      topActionRow,
       starmap.el,
     ]),
     actionRow,

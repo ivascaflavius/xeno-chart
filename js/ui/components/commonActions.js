@@ -20,17 +20,19 @@ export function menuAction(gs) {
  * Always present, grayed out until the ship is actually stranded (no
  * discovered/detected system in jump range on current fuel) and a beacon is
  * still available — tapping it while lit sends the beacon directly, same as
- * the health strip's stranded chip.
+ * the health strip's stranded chip. Rendered icon-only in the screen header
+ * (an emergency action, not a routine one) rather than the bottom action bar.
  */
 export function distressBeaconAction(gs) {
   const { save } = gs;
   const beaconsLeft = DISTRESS_BEACON_MAX_USES - save.distressBeaconsUsed;
   const available = save.stranded && beaconsLeft > 0;
   return iconButton({
-    iconName: 'distress',
+    iconName: 'beacon',
     label: available ? `Beacon (${beaconsLeft})` : 'Beacon',
     className: available ? 'btn btn-danger' : 'btn',
     disabled: !available,
+    iconOnly: true,
     onClick: () => gs.sendDistressBeacon(),
   });
 }

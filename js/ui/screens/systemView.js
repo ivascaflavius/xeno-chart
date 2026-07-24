@@ -89,7 +89,8 @@ export function render(container, gs) {
   // Always rendered — pre-scan a wormhole's presence stays hidden the same
   // way planet colors/minerals do, so this can't read "no wormhole" before
   // that's actually known, but the row itself (and the panel's height) never
-  // appears/disappears depending on what's here.
+  // appears/disappears depending on what's here. Info-only now — the Jump
+  // button moved up into the new top action bar alongside Scan.
   const wormholeKnown = scanned;
   const wormholePresent = wormholeKnown && !!sys.wormholeTo;
   const wormholePanel = el('div', { className: 'panel row panel-compact' }, [
@@ -99,13 +100,6 @@ export function render(container, gs) {
         ? 'Wormhole presence unknown — close-range scan for detail.'
         : (wormholePresent ? 'A wormhole connects this system to a distant one.' : 'No wormhole in this system.'),
       style: 'flex:1',
-    }),
-    iconButton({
-      iconName: 'wormhole',
-      label: 'Jump',
-      className: wormholePresent ? 'btn btn-primary' : 'btn',
-      disabled: !wormholePresent,
-      onClick: () => openJumpModal(gs, sys.wormholeTo, { viaWormhole: true }),
     }),
   ]);
 
@@ -142,8 +136,14 @@ export function render(container, gs) {
     el('div', { className: 'diagram-fill', html: systemOrbitHtml(sys, { scanned }) }),
   ]);
 
-  const actionRow = el('div', { className: 'action-bar' }, [
-    backAction('Back', () => gs.show('STARMAP')),
+  // Routine actions live here, next to the content they act on; the bottom
+  // bar is pure navigation (same 3 buttons on every gameplay screen). Jump
+  // only lights up once a wormhole has actually been detected this system —
+  // same condition the old inline wormhole-panel Jump button used. A second,
+  // labeled "Galaxy" back button sits here too — quicker to reach mid-screen
+  // than the header's icon-only Back or scrolling down to the bottom bar.
+  const topActionRow = el('div', { className: 'action-bar action-bar-labeled' }, [
+    backAction('Galaxy', () => gs.show('STARMAP')),
     iconButton({
       iconName: 'closeScan',
       label: scanned ? 'Scanned' : `Scan (${scanCost})`,
@@ -151,19 +151,36 @@ export function render(container, gs) {
       disabled: scanned || !canAffordScan,
       onClick: doScan,
     }),
-    distressBeaconAction(gs),
+    iconButton({
+      iconName: 'wormhole',
+      label: 'Jump',
+      className: wormholePresent ? 'btn btn-primary' : 'btn',
+      disabled: !wormholePresent,
+      onClick: () => openJumpModal(gs, sys.wormholeTo, { viaWormhole: true }),
+    }),
+  ]);
+
+  const actionRow = el('div', { className: 'action-bar action-bar-labeled' }, [
+    backAction('Back', () => gs.show('STARMAP')),
     codexAction(gs),
     journalAction(gs),
   ]);
 
+  // Groups the planet grid and wormhole row into one block, occupying the
+  // same slot Planetary View's Minerals+Biosignature block does (directly
+  // above the orbit diagram) — sized to its own natural content, so the
+  // diagram panel's flex:1 gets whatever room is left instead of leaving it
+  // empty here.
+  const surfaceBlock = el('div', { className: 'surface-block' }, [grid, wormholePanel]);
+
   container.appendChild(el('div', { className: 'screen screen-wide screen-pinned-header' }, [
-    screenHeader('System View', () => gs.show('STARMAP')),
+    screenHeader('System View', () => gs.show('STARMAP'), 'back', distressBeaconAction(gs)),
     el('div', { className: 'screen-scroll-body' }, [
       starPanel,
       shipStatusPanel(gs),
+      topActionRow,
+      surfaceBlock,
       orbitPanel,
-      wormholePanel,
-      grid,
     ]),
     actionRow,
   ]));

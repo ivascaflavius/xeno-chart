@@ -91,7 +91,7 @@ export function healthStrip(gs) {
 
   const beaconsLeft = DISTRESS_BEACON_MAX_USES - save.distressBeaconsUsed;
   chips.push(chip({
-    iconName: 'distress',
+    iconName: 'beacon',
     status: save.stranded ? 'red' : null,
     label: 'Distress',
     tooltip: save.stranded ? 'Stranded — insufficient fuel to jump' : 'Jump range: nominal',

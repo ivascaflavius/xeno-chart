@@ -175,7 +175,7 @@ const TABS = [
       },
       {
         heading: 'Stranded & Beacons',
-        iconName: 'distress',
+        iconName: 'beacon',
         body: 'Running out of fuel leaves you stranded — able to scan and harvest, just unable to jump — rather '
           + 'than ending the run outright. A distress beacon grants emergency fuel and can be used up to three '
           + 'times per expedition, so save at least one for when you are truly out of options rather than using '
