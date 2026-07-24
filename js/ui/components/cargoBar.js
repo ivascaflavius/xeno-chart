@@ -3,9 +3,7 @@ import { progressBar } from './progressBar.js';
 import { icon } from './icons.js';
 import { attachHoverTooltip } from './tooltip.js';
 import { healthStrip } from './healthStrip.js';
-import {
-  BUFFER_CAPS, RESOURCE_CAPS, STARTING_RESOURCES, STARTING_BUFFERS,
-} from '../../data/constants.js';
+import { BUFFER_CAPS, RESOURCE_CAPS } from '../../data/constants.js';
 import { statusFor } from '../../systems/resources.js';
 
 const BUFFER_ORDER = ['ore', 'ice', 'water', 'hydrogen'];
@@ -62,18 +60,5 @@ export function shipStatusPanel(gs) {
     statusSection('lifebuoy', 'Health', healthStrip(gs)),
     statusSection('ship', 'Ship', resourceIconRow(RESOURCE_ORDER.map((key) => ({ key, amount: save.resources[key], cap: RESOURCE_CAPS[key] })))),
     statusSection('cargo', 'Cargo', resourceIconRow(BUFFER_ORDER.map((key) => ({ key, amount: save.buffers[key], cap: BUFFER_CAPS[key] })))),
-  ]);
-}
-
-/**
- * Same Ship/Cargo layout as shipStatusPanel, but for New Expedition — before
- * an expedition exists there's no save to read live amounts from, so this
- * shows the fixed starting values every run begins with instead (no Health
- * section, since there's nothing yet to be unhealthy).
- */
-export function startingResourcesPanel() {
-  return el('div', { className: 'panel stack panel-compact cargo-bar-panel' }, [
-    statusSection('ship', 'Ship', resourceIconRow(RESOURCE_ORDER.map((key) => ({ key, amount: STARTING_RESOURCES[key], cap: RESOURCE_CAPS[key] })))),
-    statusSection('cargo', 'Cargo', resourceIconRow(BUFFER_ORDER.map((key) => ({ key, amount: STARTING_BUFFERS[key], cap: BUFFER_CAPS[key] })))),
   ]);
 }

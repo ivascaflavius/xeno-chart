@@ -3,7 +3,6 @@ import { confirmModal } from '../components/modal.js';
 import { iconButton } from '../components/iconButton.js';
 import { icon } from '../components/icons.js';
 import { attachHoverTooltip } from '../components/tooltip.js';
-import { startingResourcesPanel } from '../components/cargoBar.js';
 import { SAVE_SLOT_COUNT, HULL_COLORS, SHIP_CLASSES } from '../../data/constants.js';
 import { shipSchematicHtml } from '../../render/shipSchematic.js';
 import { generateShipName } from '../../procgen/names.js';
@@ -203,7 +202,6 @@ export function render(container, gs) {
     screenHeader('New Expedition', () => gs.show('MAIN_MENU')),
     el('div', { className: 'screen-scroll-body' }, [
       settingsPanel,
-      startingResourcesPanel(),
       schematicPanel,
     ]),
     actionRow,

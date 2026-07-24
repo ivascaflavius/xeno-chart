@@ -121,16 +121,15 @@ export function render(container, gs) {
     tabRow.innerHTML = '';
     for (const tab of TABS) {
       tabRow.appendChild(el('button', {
-        className: `tab-btn tab-btn-labeled${active === tab.key ? ' active' : ''}`,
+        className: `tab-btn${active === tab.key ? ' active' : ''}`,
+        title: tab.label,
+        html: icon(tab.iconName, 20),
         onClick: () => {
           active = tab.key;
           renderTabs();
           renderContent();
         },
-      }, [
-        el('span', { className: 'resource-icon', html: icon(tab.iconName, 16) }),
-        el('span', { text: tab.label }),
-      ]));
+      }));
     }
   }
 

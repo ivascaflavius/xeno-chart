@@ -27,6 +27,20 @@ html, body {
   background: var(--bg-void);
   color: var(--text-primary);
   font-family: var(--font-body);
+  /* This is a touch-driven game UI, not a document — a long-press or drag
+     accidentally selecting a label (and on Android, popping up a dictionary/
+     search-this-word card on top of it) reads as broken, not as a feature
+     worth keeping. Text inputs opt back in below since typing/selecting
+     there is the whole point. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 body {
