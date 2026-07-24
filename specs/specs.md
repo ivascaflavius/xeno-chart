@@ -844,6 +844,60 @@ more detail at its relevant section above:
   including Ship Systems (previously resources-only there) and Galactic View
   (previously ship-only there) — the exact same panel everywhere, per §5
 
+### 16d. Gameplay screen navigation & action-bar conventions (implemented)
+
+A further round of polish restructured how the four gameplay screens
+(Galactic View, System View, Planetary View, Ship Systems) organize their
+actions and navigation, cutting how often the player has to reach the bottom
+of the screen for anything routine. This is now the standing convention for
+any future gameplay screen, not a one-off layout:
+
+- **Header**: back (or, for Galactic View, menu) icon + title, plus an
+  optional right-side action (`ui/components/screenHeader.js`'s `rightAction`
+  param) — the title's own `flex:1` pushes it to the far edge, no separate
+  spacer needed. All four gameplay screens use this slot for the Distress
+  Beacon (`beacon` icon, §5), since it's an emergency action, not a routine
+  one: grayed out until the ship is actually stranded and a beacon is still
+  available, same logic as the health strip's stranded chip.
+- **Bottom action bar**: pure navigation, identical 3-button shape on every
+  gameplay screen — Galactic View is Menu/Codex/Journal, the other three are
+  Back/Codex/Journal. Uses `action-bar-labeled` (labels visible even on
+  mobile) since three buttons is few enough to not crowd a narrow phone.
+- **Per-screen top action bar**: inserted into the scroll body directly after
+  the info panel + shared `shipStatusPanel()` (Health/Ship/Cargo, §5), holding
+  that screen's routine actions — the ones a player actually reaches for
+  mid-play, as opposed to navigation:
+  - Galactic View: Scan, System, Ship
+  - System View: **Galaxy** (a second, labeled back button to the Galactic
+    View — quicker to reach here than scrolling to the bottom bar or using
+    the header's icon-only Back), Scan, Jump (lit only once a wormhole has
+    been detected this system)
+  - Planetary View: **Star** (a second labeled back button to the System
+    View, same reachability rationale), Harvest/Harvested (or Cargo Full/No
+    Minerals, depending on state), Sample/Sampled
+  - Ship Systems: unaffected — it has no per-screen routine actions, only the
+    header/bottom-bar changes above apply
+- **Info panel row order**: name, then a type-and-count row (star class ·
+  planet count, or planet class · moon count), then a physical-stats row
+  (temperature · radius · mass) — kept consistent between System View's star
+  panel and Planetary View's planet panel, so the same row always holds the
+  same *kind* of information across both screens.
+- **System View's wormhole row** is info-only (status text, no button) now
+  that Jump lives in the top action bar — its three states (unknown /
+  present / absent) are unchanged, just without a trailing button.
+- **`surface-block`** (`css/styles.css`) groups System View's planet grid +
+  wormhole row, or Planetary View's Minerals + Biosignature rows, into one
+  block sized to its own natural content — no forced min-height. The
+  orbit/moon diagram panel right below it already has `flex:1`, so it's the
+  one that grows to fill whatever room the block above didn't need, instead
+  of that room sitting empty between the two.
+- **Orbit/moon diagram sizing** (`scanDetail.js`): a planet's portrait
+  normally occupies only 50% of its diagram box, leaving room for moon-orbit
+  rings around it — but a planet with zero moons has nothing to fill that
+  reserved space, so it renders at 100% instead, filling the box edge to edge
+  the same way a moonless planet's still portrait does everywhere else in
+  the game.
+
 ### 16a. Phase 1 definition of done
 
 Before moving on to Phase 2, confirm all of the following:
